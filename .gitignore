@@ -11,3 +11,4 @@
 !postvoca.tex
 
 __pycache__/
+*.egg-info/
