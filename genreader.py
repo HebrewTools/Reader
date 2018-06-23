@@ -19,9 +19,10 @@ FEATURES = 'g_word_utf8 gloss lex_utf8 otype trailer_utf8 voc_lex_utf8'
 def parse_passage(passage):
     match = re.match(PASSAGE_RGX, passage)
     if match is None:
-        return None
-
-    match = match.groupdict()
+        match = {'book': passage, 'startchap': 1, 'startverse': 1,
+                'endchap': None, 'endverse': None, 'endref': 'bookend'}
+    else:
+        match = match.groupdict()
 
     match['book'] = match['book'].replace(' ', '_')
     match['startchap'] = int(match['startchap'])
@@ -184,11 +185,16 @@ def main():
         except:
             print('Failed to parse this passage: "{}"'.format(passage))
             sys.exit(1)
-        print('{} {}:{} - {}:{}'.format(
-            passage['book'],
+
+        passage_pretty = '{} {}:{} - {}:{}'.format(
+            passage['book'].replace('_', ' '),
             passage['startchap'], passage['startverse'],
-            passage['endchap'], passage['endverse']))
+            passage['endchap'], passage['endverse'])
+        print(passage_pretty)
+        args.output.write(r'\def\thepassage{%s}' % passage_pretty)
+
         text, words = get_passage_and_words(passage)
+
         args.output.write('\n\n' + pretext)
         args.output.write('\n'.join(text))
         args.output.write('\n' + posttext)
