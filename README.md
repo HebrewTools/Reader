@@ -22,9 +22,9 @@ $ git clone https://github.com/ETCBC/bhsa ~/Downloads/etcbc/bhsa
 To get a reader for Genesis:
 
 ```
-./genreader.py \
+./hebrewreader.py \
   --bhsa ~/Downloads/etcbc/bhsa/tf --module c \
-  --output genesis.tex --pdf \
+  --pdf genesis.pdf \
   Genesis
 ```
 
@@ -34,9 +34,9 @@ Instead of `Genesis`, you can also specify passages, e.g. `Psalms 1`, `Exodus
 You can also specify multiple passages:
 
 ```
-./genreader.py \
+./hebrewreader.py \
   --bhsa ~/Downloads/etcbc/bhsa/tf --module c \
-  --output genesis.tex --pdf \
+  --pdf job-fragments.pdf \
   'Job 28' 'Job 38:1-38'
 ```
 

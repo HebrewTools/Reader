@@ -9,3 +9,5 @@
 !posttext.tex
 !prevoca.tex
 !postvoca.tex
+
+__pycache__/
