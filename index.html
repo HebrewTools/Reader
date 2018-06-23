@@ -11,13 +11,8 @@
 		a PDF file containg a collection of Hebrew texts
 		and a vocabulary list with all words in the text.
 	</p>
-	<p>
-		This is open source software, licensed under MIT.
-		Written by <a href="https://camilstaps.nl">Camil Staps</a>.
-		See <a href="https://github.com/HebrewTools/Reader">GitHub</a>, also for a stand-alone tool.
-	</p>
 	<hr/>
-	<p>Enter the passages here, one per line:<sup>*</sup></p>
+	<p>Enter the passages here, one per line<sup>*</sup>:</p>
 	<form action="reader" method="GET">
 		<textarea name="passages" rows="10" cols="30">Psalms 1
 Exodus 3:15
@@ -37,14 +32,20 @@ Job 38:1-bookend</textarea>
 		<p>Generate the reader:</p>
 		<p><input type="submit" value="Generate"/></p>
 		<hr/>
-		<p><small>
-			* Valid book names are:
-			Genesis, Exodus, Leviticus, Numbers, Deuteronomy, Joshua, Judges, 1 Samuel, 2 Samuel, 1 Kings, 2 Kings, Isaiah, Jeremiah, Ezekiel, Hosea, Joel, Amos, Obadiah, Jonah, Micah, Nahum, Habakkuk, Zephaniah, Haggai, Zechariah, Malachi, Psalms, Job, Proverbs, Ruth, Song of songs, Ecclesiastes, Lamentations, Esther, Daniel, Ezra, Nehemiah, 1 Chronicles, 2 Chronicles.
-		</small></p>
-		<p>
-			This tool uses the SBL Hebrew font, which is property of Tiro Typeworks.
-			For details, see <a href="https://www.sbl-site.org/educational/biblicalfonts.aspx">the information page</a>.
-		</p>
 	</form>
+	<p><small>
+		* Valid book names are:
+		Genesis, Exodus, Leviticus, Numbers, Deuteronomy, Joshua, Judges, 1 Samuel, 2 Samuel, 1 Kings, 2 Kings, Isaiah, Jeremiah, Ezekiel, Hosea, Joel, Amos, Obadiah, Jonah, Micah, Nahum, Habakkuk, Zephaniah, Haggai, Zechariah, Malachi, Psalms, Job, Proverbs, Ruth, Song of songs, Ecclesiastes, Lamentations, Esther, Daniel, Ezra, Nehemiah, 1 Chronicles, 2 Chronicles.
+	</small></p>
+	<p><small>
+		This is open source software, licensed under <a href="https://opensource.org/licenses/MIT">MIT</a>.
+		Written by <a href="https://camilstaps.nl">Camil Staps</a>.
+		See <a href="https://github.com/HebrewTools/Reader">GitHub</a>, also for a stand-alone tool.
+		This tool uses the SBL Hebrew font, which is property of Tiro Typeworks
+		(<a href="https://www.sbl-site.org/educational/biblicalfonts.aspx">more details</a>),
+		<a href="https://github.com/DANS-Labs/text-fabric">text-fabric</a> and
+		the data of the <a href="https://github.com/ETCBC/bhsa">BHSA</a>,
+		licensed under <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>.
+	</small></p>
 </body>
 </html>
