@@ -1,0 +1,25 @@
+\documentclass[a4paper]{article}
+
+\usepackage[margin=18mm,bottom=25mm]{geometry}
+\usepackage{setspace}
+\usepackage{multicol}
+
+\makeatletter
+\chardef\l@hebrew=255
+\makeatother
+\usepackage{polyglossia}
+\setmainlanguage{english}
+\setotherlanguage{hebrew}
+\newfontfamily\hebrewfont[Scale=MatchUppercase,Script=Hebrew]{SBL Hebrew}
+
+\title{Biblical Hebrew Reader}
+\author{HebrewTools}
+
+\newcommand{\rdrchap}[1]{\begin{english}\setRL\small\textbf{#1}\end{english}}
+\newcommand{\rdrverse}[1]{\raisebox{2.5pt}{\tiny#1}}
+
+\newcommand{\setuma}{~~~~{\scriptsize ס}~~~~}
+\newcommand{\petucha}{~~~~{\footnotesize פ}~~~~}
+
+\begin{document}
+\setstretch{1.3}

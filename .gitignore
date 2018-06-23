@@ -1,0 +1,11 @@
+*.aux
+*.log
+*.pdf
+*.tex
+
+!pre.tex
+!post.tex
+!pretext.tex
+!posttext.tex
+!prevoca.tex
+!postvoca.tex
