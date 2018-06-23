@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
 from contextlib import contextmanager
+import gc
 from http.server import HTTPServer, HTTPStatus, BaseHTTPRequestHandler
 from shutil import copyfileobj
 import signal
@@ -10,6 +11,7 @@ from urllib.parse import urlparse, parse_qs
 from tf.fabric import Fabric
 from hebrewreader import generate, load_data
 
+LOCATION = {}
 TEMPLATES = {}
 
 # https://stackoverflow.com/a/601168/1544337
@@ -64,10 +66,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         pdf = tempfile.mkstemp(suffix='.pdf', prefix='reader')[1]
 
         try:
+            api = load_data(LOCATION['bhsa'], LOCATION['module'])
             with time_limit(5):
                 generate(passages, combine_voca is not None,
                         tex, None if fmt == 'tex' else pdf,
-                        TEMPLATES, quiet=True)
+                        TEMPLATES, api, quiet=True)
+            del api
+            gc.collect()
         except TimeoutException as e:
             self.send_quick_response(HTTPStatus.REQUEST_TIMEOUT, str(e))
             return
@@ -99,8 +104,8 @@ def main():
 
     args = parser.parse_args()
 
-    print('Loading data...')
-    load_data(args.bhsa, args.module)
+    LOCATION['bhsa'] = args.bhsa
+    LOCATION['module'] = args.module
 
     TEMPLATES['pre'] = open('pre.tex', encoding='utf-8').read()
     TEMPLATES['post'] = open('post.tex', encoding='utf-8').read()
@@ -109,7 +114,7 @@ def main():
     TEMPLATES['prevoca'] = open('prevoca.tex', encoding='utf-8').read()
     TEMPLATES['postvoca'] = open('postvoca.tex', encoding='utf-8').read()
 
-    print('Starting server...')
+    print('Listening on port 19419...')
     address = ('', 19419)
     httpd = HTTPServer(address, HTTPRequestHandler)
     httpd.serve_forever()

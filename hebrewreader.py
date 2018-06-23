@@ -18,7 +18,7 @@ PASSAGE_RGX = (
 
 FEATURES = 'g_word_utf8 gloss lex_utf8 otype trailer_utf8 voc_lex_utf8'
 
-def parse_passage(passage):
+def parse_passage(passage, api):
     match = re.match(PASSAGE_RGX, passage)
     if match is None:
         match = {'book': passage, 'startchap': 1, 'startverse': 1,
@@ -43,43 +43,43 @@ def parse_passage(passage):
                 match['endchap'] = match['startchap']
                 match['endverse'] = match['startverse']
         elif match['endverse'] is None:
-            location = T.nodeFromSection((match['book'], match['endchap'], 1))
-            location = L.u(location, otype='chapter')[0]
-            location = L.n(location, otype='chapter')[0]
-            location = L.p(location, otype='verse')[0]
-            _, _, match['endverse'] = T.sectionFromNode(location)
+            location = api.T.nodeFromSection((match['book'], match['endchap'], 1))
+            location = api.L.u(location, otype='chapter')[0]
+            location = api.L.n(location, otype='chapter')[0]
+            location = api.L.p(location, otype='verse')[0]
+            _, _, match['endverse'] = api.T.sectionFromNode(location)
 
         if match['startverse'] is None:
             match['startverse'] = 1
 
         if match['endref'] == 'end':
-            location = T.nodeFromSection((match['book'], match['startchap']))
-            location = L.n(location, otype='chapter')[0]
-            location = L.d(location, otype='verse')[0]
-            location = L.p(location, otype='verse')[0]
-            _, match['endchap'], match['endverse'] = T.sectionFromNode(location)
+            location = api.T.nodeFromSection((match['book'], match['startchap']))
+            location = api.L.n(location, otype='chapter')[0]
+            location = api.L.d(location, otype='verse')[0]
+            location = api.L.p(location, otype='verse')[0]
+            _, match['endchap'], match['endverse'] = api.T.sectionFromNode(location)
         elif match['endref'] == 'bookend':
-            location = T.nodeFromSection((match['book'],))
-            location = L.n(location, otype='book')[0]
-            location = L.d(location, otype='verse')[0]
-            location = L.p(location, otype='verse')[0]
-            _, match['endchap'], match['endverse'] = T.sectionFromNode(location)
+            location = api.T.nodeFromSection((match['book'],))
+            location = api.L.n(location, otype='book')[0]
+            location = api.L.d(location, otype='verse')[0]
+            location = api.L.p(location, otype='verse')[0]
+            _, match['endchap'], match['endverse'] = api.T.sectionFromNode(location)
     except:
         raise ValueError('Could not find reference "{}"'.format(passage))
 
     match.pop('endref')
     return match
 
-def verses_in_passage(passage):
+def verses_in_passage(passage, api):
     for chap in range(passage['startchap'], passage['endchap']+1):
         start = passage['startverse'] if chap == passage['startchap'] else 1
         if chap == passage['endchap']:
             end = passage['endverse']
         else:
-            location = T.nodeFromSection((passage['book'], chap+1))
-            location = L.d(location, otype='verse')[0]
-            location = L.p(location, otype='verse')[0]
-            _, _, end = T.sectionFromNode(location)
+            location = api.T.nodeFromSection((passage['book'], chap+1))
+            location = api.L.d(location, otype='verse')[0]
+            location = api.L.p(location, otype='verse')[0]
+            _, _, end = api.T.sectionFromNode(location)
 
         for verse in range(start, end+1):
             yield (passage['book'], chap, verse)
@@ -95,18 +95,18 @@ def fix_gloss(gloss):
         return 'I'
     return re.sub(r'<(.*)>', r'\\textit{\1}', gloss)
 
-def get_passage_and_words(passage, separate_chapters=True, verse_nos=True):
+def get_passage_and_words(passage, api, separate_chapters=True, verse_nos=True):
     text = []
     words = set()
 
     last_chapter = None
-    for verse in verses_in_passage(passage):
+    for verse in verses_in_passage(passage, api):
         if verse[1] != last_chapter:
             last_chapter = verse[1]
             if separate_chapters:
                 text.append('\n')
-        node = T.nodeFromSection(verse)
-        wordnodes = L.d(node, otype='word')
+        node = api.T.nodeFromSection(verse)
+        wordnodes = api.L.d(node, otype='word')
         thistext = ''
         if verse_nos:
             if verse[2] == 1:
@@ -115,22 +115,22 @@ def get_passage_and_words(passage, separate_chapters=True, verse_nos=True):
         thiswords = []
         for word in wordnodes:
             thiswords.append(
-                    F.g_word_utf8.v(word) +
-                    fix_trailer(F.trailer_utf8.v(word)))
-            lex = L.u(word, otype='lex')[0]
-            words.add((F.lex_utf8.v(word), F.voc_lex_utf8.v(lex), fix_gloss(F.gloss.v(lex))))
+                    api.F.g_word_utf8.v(word) +
+                    fix_trailer(api.F.trailer_utf8.v(word)))
+            lex = api.L.u(word, otype='lex')[0]
+            words.add((api.F.lex_utf8.v(word), api.F.voc_lex_utf8.v(lex), fix_gloss(api.F.gloss.v(lex))))
         thistext += ''.join(thiswords)
         text.append(thistext)
 
     return text, sorted(words)
 
-def generate(passages, combine_voca, tex, pdf, templates, quiet=False):
+def generate(passages, combine_voca, tex, pdf, templates, api, quiet=False):
     tex.write(templates['pre'])
 
     voca = set()
 
     for passage_text in passages:
-        passage = parse_passage(passage_text)
+        passage = parse_passage(passage_text, api)
 
         passage_pretty = '{} {}:{} - {}:{}'.format(
             passage['book'].replace('_', ' '),
@@ -139,7 +139,7 @@ def generate(passages, combine_voca, tex, pdf, templates, quiet=False):
         tex.write(r'\def\thepassage{%s}' % passage_pretty)
 
         try:
-            text, words = get_passage_and_words(passage)
+            text, words = get_passage_and_words(passage, api)
         except:
             raise ValueError('Could not find reference "{}"'.format(passage_text))
 
@@ -188,7 +188,7 @@ def generate(passages, combine_voca, tex, pdf, templates, quiet=False):
 def load_data(locations, modules):
     TF = Fabric(locations=locations, modules=modules, silent=True)
     api = TF.load(FEATURES, silent=True)
-    api.makeAvailableIn(globals())
+    return api
 
 def main():
     parser = ArgumentParser(
@@ -251,7 +251,7 @@ def main():
         args.pdf = tempfile.mkstemp(suffix='.pdf', prefix='reader')[1]
 
     print('Loading data...')
-    load_data(args.bhsa, args.module)
+    api = load_data(args.bhsa, args.module)
 
     if len(args.passages) == 0:
         print('No passages given, not doing anything')
@@ -266,7 +266,7 @@ def main():
         templates['posttext'] = args.post_text_tex.read()
         templates['prevoca'] = args.pre_voca_tex.read()
         templates['postvoca'] = args.post_voca_tex.read()
-        generate(args.passages, args.combine_voca, args.tex, args.pdf, templates)
+        generate(args.passages, args.combine_voca, args.tex, args.pdf, templates, api)
     except Exception as e:
         print(e)
         sys.exit(1)
