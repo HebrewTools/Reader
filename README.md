@@ -4,6 +4,9 @@ A tool to generate Biblical Hebrew *readers*. A reader contains a number of
 texts, joined with a vocabulary containing exactly those lemmas that occur in
 the text.
 
+The tool can also be used at
+[reader.hebrewtools.org](https://reader.hebrewtools.org).
+
 This tool relies on [text-fabric][] for accessing the Hebrew Bible, and on the
 data in the [BHSA][].
 
