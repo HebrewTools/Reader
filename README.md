@@ -17,7 +17,9 @@ Make sure that you have Python 3 and XeLaTeX installed.
 ```bash
 $ pip3 install text-fabric
 $ git clone https://github.com/HebrewTools/Reader
-$ git clone https://github.com/ETCBC/bhsa ~/Downloads/etcbc/bhsa
+$ svn export https://github.com/ETCBC/bhsa/trunk/tf/c /tmp/bhsa
+$ cd Reader
+$ ./collectcontexts.py --bhsa /tmp --module bhsa
 ```
 
 ## Usage
@@ -26,7 +28,6 @@ To get a reader for Genesis:
 
 ```
 ./hebrewreader.py \
-  --bhsa ~/Downloads/etcbc/bhsa/tf --module c \
   --pdf genesis.pdf \
   Genesis
 ```
@@ -38,7 +39,6 @@ You can also specify multiple passages:
 
 ```
 ./hebrewreader.py \
-  --bhsa ~/Downloads/etcbc/bhsa/tf --module c \
   --pdf job-fragments.pdf \
   'Job 28' 'Job 38:1-38'
 ```

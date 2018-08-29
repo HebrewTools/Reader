@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser, FileType, RawTextHelpFormatter
 import os
+import pickle
 import re
 from shutil import copyfile
 import subprocess
@@ -10,6 +11,10 @@ import textwrap
 
 from tf.fabric import Fabric
 
+import minitf
+
+DATADIR = 'data'
+
 PASSAGE_RGX = (
     r'^(?P<book>(?:\d )?[a-zA-Z ]+) '
     r'(?P<startchap>\d+)(?::(?P<startverse>\d+))?'
@@ -18,7 +23,15 @@ PASSAGE_RGX = (
 
 FEATURES = 'g_word_utf8 gloss lex_utf8 otype trailer_utf8 voc_lex_utf8'
 
-def parse_passage(passage, api):
+VERSE_NODES = dict()
+
+def load_verse_nodes():
+    global VERSE_NODES
+
+    with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'rb') as f:
+        VERSE_NODES = pickle.load(f)
+
+def parse_passage(passage):
     match = re.match(PASSAGE_RGX, passage)
     if match is None:
         match = {'book': passage, 'startchap': 1, 'startverse': 1,
@@ -43,43 +56,30 @@ def parse_passage(passage, api):
                 match['endchap'] = match['startchap']
                 match['endverse'] = match['startverse']
         elif match['endverse'] is None:
-            location = api.T.nodeFromSection((match['book'], match['endchap'], 1))
-            location = api.L.u(location, otype='chapter')[0]
-            location = api.L.n(location, otype='chapter')[0]
-            location = api.L.p(location, otype='verse')[0]
-            _, _, match['endverse'] = api.T.sectionFromNode(location)
+            match['endverse'] = len(VERSE_NODES[match['book']][match['endchap']])
 
         if match['startverse'] is None:
             match['startverse'] = 1
 
         if match['endref'] == 'end':
-            location = api.T.nodeFromSection((match['book'], match['startchap']))
-            location = api.L.n(location, otype='chapter')[0]
-            location = api.L.d(location, otype='verse')[0]
-            location = api.L.p(location, otype='verse')[0]
-            _, match['endchap'], match['endverse'] = api.T.sectionFromNode(location)
+            match['endchap'] = match['startchap']
+            match['endverse'] = len(VERSE_NODES[match['book']][match['endchap']])
         elif match['endref'] == 'bookend':
-            location = api.T.nodeFromSection((match['book'],))
-            location = api.L.n(location, otype='book')[0]
-            location = api.L.d(location, otype='verse')[0]
-            location = api.L.p(location, otype='verse')[0]
-            _, match['endchap'], match['endverse'] = api.T.sectionFromNode(location)
+            match['endchap'] = len(VERSE_NODES[match['book']])
+            match['endverse'] = len(VERSE_NODES[match['book']][match['endchap']])
     except:
         raise ValueError('Could not find reference "{}"'.format(passage))
 
     match.pop('endref')
     return match
 
-def verses_in_passage(passage, api):
+def verses_in_passage(passage):
     for chap in range(passage['startchap'], passage['endchap']+1):
         start = passage['startverse'] if chap == passage['startchap'] else 1
         if chap == passage['endchap']:
             end = passage['endverse']
         else:
-            location = api.T.nodeFromSection((passage['book'], chap+1))
-            location = api.L.d(location, otype='verse')[0]
-            location = api.L.p(location, otype='verse')[0]
-            _, _, end = api.T.sectionFromNode(location)
+            end = len(VERSE_NODES[passage['book']][chap])
 
         for verse in range(start, end+1):
             yield (passage['book'], chap, verse)
@@ -100,12 +100,12 @@ def get_passage_and_words(passage, api, separate_chapters=True, verse_nos=True):
     words = set()
 
     last_chapter = None
-    for verse in verses_in_passage(passage, api):
+    for verse in verses_in_passage(passage):
         if verse[1] != last_chapter:
             last_chapter = verse[1]
             if separate_chapters:
                 text.append('\n')
-        node = api.T.nodeFromSection(verse)
+        node = VERSE_NODES[verse[0]][verse[1]][verse[2]]
         wordnodes = api.L.d(node, otype='word')
         thistext = ''
         if verse_nos:
@@ -124,13 +124,36 @@ def get_passage_and_words(passage, api, separate_chapters=True, verse_nos=True):
 
     return text, sorted(words)
 
-def generate(passages, combine_voca, tex, pdf, templates, api, quiet=False):
+def load_data(passage):
+    seen = set()
+    context = dict()
+    for book, chap, _ in verses_in_passage(passage):
+        if (book,chap) in seen:
+            continue
+        seen.add((book, chap))
+        fname = book + '_' + str(chap) + '.pkl'
+        with open(os.path.join(DATADIR, fname), 'rb') as f:
+            add_context = pickle.load(f)
+            for key, val in add_context.items():
+                if key not in context:
+                    context[key] = val
+                elif key == 'nodes':
+                    context[key] += ',' + val
+                elif key == 'locality' or key == 'features':
+                    for subkey, subval in val.items():
+                        context[key][subkey].update(subval)
+                else:
+                    context[key].update(val)
+    api = minitf.MiniApi(**context)
+    return api
+
+def generate(passages, combine_voca, tex, pdf, templates, quiet=False):
     tex.write(templates['pre'])
 
     voca = set()
 
     for passage_text in passages:
-        passage = parse_passage(passage_text, api)
+        passage = parse_passage(passage_text)
 
         passage_pretty = '{} {}:{} - {}:{}'.format(
             passage['book'].replace('_', ' '),
@@ -139,6 +162,7 @@ def generate(passages, combine_voca, tex, pdf, templates, api, quiet=False):
         tex.write(r'\def\thepassage{%s}' % passage_pretty)
 
         try:
+            api = load_data(passage)
             text, words = get_passage_and_words(passage, api)
         except:
             raise ValueError('Could not find reference "{}"'.format(passage_text))
@@ -185,21 +209,10 @@ def generate(passages, combine_voca, tex, pdf, templates, api, quiet=False):
 
     return (tex.name, pdf)
 
-def load_data(locations, modules):
-    TF = Fabric(locations=locations, modules=modules, silent=True)
-    api = TF.load(FEATURES, silent=True)
-    return api
-
 def main():
     parser = ArgumentParser(
             description='LaTeX reader generator for Biblical Hebrew',
             formatter_class=RawTextHelpFormatter)
-
-    p_data = parser.add_argument_group('Data source options')
-    p_data.add_argument('--bhsa', '-b', nargs=1, required=True,
-            help='Location of the BHSA data')
-    p_data.add_argument('--module', '-m', nargs=1, required=True,
-            help='Text-fabric module to load')
 
     p_tex = parser.add_argument_group('TeX template options')
     p_tex.add_argument('--pre-tex', type=FileType('r', encoding='utf-8'),
@@ -251,7 +264,7 @@ def main():
         args.pdf = tempfile.mkstemp(suffix='.pdf', prefix='reader')[1]
 
     print('Loading data...')
-    api = load_data(args.bhsa, args.module)
+    load_verse_nodes()
 
     if len(args.passages) == 0:
         print('No passages given, not doing anything')
@@ -266,7 +279,7 @@ def main():
         templates['posttext'] = args.post_text_tex.read()
         templates['prevoca'] = args.pre_voca_tex.read()
         templates['postvoca'] = args.post_voca_tex.read()
-        generate(args.passages, args.combine_voca, args.tex, args.pdf, templates, api)
+        generate(args.passages, args.combine_voca, args.tex, args.pdf, templates)
     except Exception as e:
         print(e)
         sys.exit(1)
