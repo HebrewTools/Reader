@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-from argparse import ArgumentParser
 from contextlib import contextmanager
-import gc
 from http.server import HTTPServer, HTTPStatus, BaseHTTPRequestHandler
 from shutil import copyfileobj
 import signal
@@ -9,9 +7,8 @@ import tempfile
 from urllib.parse import urlparse, parse_qs
 
 from tf.fabric import Fabric
-from hebrewreader import generate, load_data
+from hebrewreader import generate, load_verse_nodes
 
-LOCATION = {}
 TEMPLATES = {}
 
 # https://stackoverflow.com/a/601168/1544337
@@ -66,13 +63,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         pdf = tempfile.mkstemp(suffix='.pdf', prefix='reader')[1]
 
         try:
-            api = load_data(LOCATION['bhsa'], LOCATION['module'])
             with time_limit(5):
                 generate(passages, combine_voca is not None,
                         tex, None if fmt == 'tex' else pdf,
-                        TEMPLATES, api, quiet=True)
-            del api
-            gc.collect()
+                        TEMPLATES, quiet=True)
         except TimeoutException as e:
             self.send_quick_response(HTTPStatus.REQUEST_TIMEOUT, str(e))
             return
@@ -94,25 +88,14 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_quick_response(HTTPStatus.NOT_FOUND, 'Not found')
 
 def main():
-    parser = ArgumentParser(description='HTTP server for hebrew-reader')
-
-    p_data = parser.add_argument_group('Data source options')
-    p_data.add_argument('--bhsa', '-b', nargs=1, required=True,
-            help='Location of the BHSA data')
-    p_data.add_argument('--module', '-m', nargs=1, required=True,
-            help='Text-fabric module to load')
-
-    args = parser.parse_args()
-
-    LOCATION['bhsa'] = args.bhsa
-    LOCATION['module'] = args.module
-
     TEMPLATES['pre'] = open('pre.tex', encoding='utf-8').read()
     TEMPLATES['post'] = open('post.tex', encoding='utf-8').read()
     TEMPLATES['pretext'] = open('pretext.tex', encoding='utf-8').read()
     TEMPLATES['posttext'] = open('posttext.tex', encoding='utf-8').read()
     TEMPLATES['prevoca'] = open('prevoca.tex', encoding='utf-8').read()
     TEMPLATES['postvoca'] = open('postvoca.tex', encoding='utf-8').read()
+
+    load_verse_nodes()
 
     print('Listening on port 19419...')
     address = ('', 19419)

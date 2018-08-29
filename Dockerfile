@@ -22,7 +22,8 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY *.md *.py *.tex *.html /usr/src/app/
 RUN python3 setup.py install &&\
-	./hebrewreader.py --bhsa /bhsa --module c
+	mkdir data &&\
+	./collectcontexts.py --bhsa /bhsa --module c
 
 ENTRYPOINT ["./hebrewreaderserver.py", "--bhsa", "/bhsa", "--module", "c"]
 CMD []

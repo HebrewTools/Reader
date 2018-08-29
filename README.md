@@ -19,6 +19,7 @@ $ pip3 install text-fabric
 $ git clone https://github.com/HebrewTools/Reader
 $ svn export https://github.com/ETCBC/bhsa/trunk/tf/c /tmp/bhsa
 $ cd Reader
+$ mkdir data
 $ ./collectcontexts.py --bhsa /tmp --module bhsa
 ```
 
