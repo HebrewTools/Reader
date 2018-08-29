@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from contextlib import contextmanager
 from http.server import HTTPServer, HTTPStatus, BaseHTTPRequestHandler
+import os
+import re
 from shutil import copyfileobj
 import signal
 import tempfile
@@ -35,17 +37,20 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         req = urlparse('http://localhost' + self.path)
         if req.path == '/':
-            self.do_send_index()
+            self.do_send_file('index.html')
         elif req.path == '/reader':
             self.do_generate_reader(**parse_qs(req.query, keep_blank_values=True))
+        elif re.match(r'^\/\.well-known\/acme-challenge\/\w*$', req.path) and \
+                os.path.isfile(req.path[1:]):
+            self.do_send_file(req.path[1:])
         else:
             self.send_quick_response(HTTPStatus.NOT_FOUND, 'Not found')
 
-    def do_send_index(self):
+    def do_send_file(self, fname):
         self.send_response(HTTPStatus.OK, 'OK')
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
-        with open('index.html', 'rb') as f:
+        with open(fname, 'rb') as f:
             copyfileobj(f, self.wfile)
 
     def do_generate_reader(self, fmt=['pdf'], combine_voca=None, passages=None, **kwargs):
