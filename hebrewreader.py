@@ -147,7 +147,7 @@ def load_data(passage):
     api = minitf.MiniApi(**context)
     return api
 
-def generate(passages, combine_voca, tex, pdf, templates, quiet=False):
+def generate(passages, include_voca, combine_voca, tex, pdf, templates, quiet=False):
     tex.write(templates['pre'])
 
     voca = set()
@@ -171,6 +171,9 @@ def generate(passages, combine_voca, tex, pdf, templates, quiet=False):
         tex.write('\n'.join(text))
         tex.write('\n' + templates['posttext'])
 
+        if not include_voca:
+            continue
+
         if combine_voca:
             voca.update(words)
         else:
@@ -178,7 +181,7 @@ def generate(passages, combine_voca, tex, pdf, templates, quiet=False):
             tex.write('\\\\\n'.join(r'{\hebrewfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
             tex.write('\n' + templates['postvoca'])
 
-    if combine_voca:
+    if include_voca and combine_voca:
         tex.write('\n\n' + templates['prevoca'])
         tex.write('\\\\\n'.join(r'{\hebrewfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in sorted(voca)))
         tex.write('\n' + templates['postvoca'])
@@ -241,6 +244,8 @@ def main():
             metavar='FILE', help='The output PDF file')
 
     p_misc = parser.add_argument_group('Miscellaneous options')
+    p_misc.add_argument('--exclude-voca', target='include_voca', action='store_false',
+            help='Do not generate any vocabulary lists')
     p_misc.add_argument('--combine-voca', action='store_true',
             help='Use one vocabulary list for all passages')
 
@@ -279,7 +284,7 @@ def main():
         templates['posttext'] = args.post_text_tex.read()
         templates['prevoca'] = args.pre_voca_tex.read()
         templates['postvoca'] = args.post_voca_tex.read()
-        generate(args.passages, args.combine_voca, args.tex, args.pdf, templates)
+        generate(args.passages, args.include_voca, args.combine_voca, args.tex, args.pdf, templates)
     except Exception as e:
         print(e)
         sys.exit(1)

@@ -3,40 +3,57 @@
 <head>
 	<title>Biblical Hebrew Reader Generator</title>
 	<meta charset="utf-8">
+	<style type="text/css">
+		fieldset {
+			margin-bottom: .8em;
+		}
+	</style>
+	<script>
+		function update_forms() {
+			var include_voca = document.getElementsByName('include_voca')[0];
+			var combine_voca = document.getElementsByName('combine_voca')[0];
+			combine_voca.disabled = include_voca.checked ? null : 'disabled';
+		}
+	</script>
 </head>
-<body>
+<body onload="update_forms()">
 	<h1>Biblical Hebrew Reader Generator</h1>
 	<p>
 		This tool allows you to generate a <em>reader</em>,
 		a PDF file containg a collection of Hebrew texts
 		and a vocabulary list with all words in the text.
 	</p>
-	<hr/>
-	<p>Enter the passages here, one per line<sup>*</sup>:</p>
 	<form action="reader" method="GET">
-		<textarea name="passages" rows="10" cols="30">Psalms 1
+		<fieldset>
+			<legend>Step 1: passages</legend>
+			Enter the passages here, one per line:<br/>
+			<textarea name="passages" rows="10" cols="30">Psalms 1
 Exodus 3:15
 Genesis 1-2:3
 Genesis 2:4-11
 1 Kings 17:7-end
-Job 38:1-bookend</textarea>
-		<p><small>
-			Note that <code>11</code> in <code>2:4-11</code> refers to the chapter, not the verse.
-			Use <code>2:4-2:11</code> for the verse.
-		</small></p>
-		<p>If you want a separate vocabulary list for each text, uncheck this box:</p>
-		<label><input type="checkbox" name="combine_voca" checked="checked"/> Combine vocabulary</label>
-		<p>Instead of generating the PDF, you can also get the XeLaTeX sources:</p>
-		<label><input type="radio" name="fmt" value="pdf" checked="checked"/> PDF</label>
-		<label><input type="radio" name="fmt" value="tex"/> XeLaTeX</label>
-		<p>Generate the reader:</p>
-		<p><input type="submit" value="Generate"/></p>
-		<hr/>
+Job 38:1-bookend</textarea><br/>
+			<small>
+				Note that <code>11</code> in <code>2:4-11</code> refers to the chapter, not the verse.
+				Use <code>2:4-2:11</code> for the verse.
+			</small><br/>
+			<small>
+				Valid book names are:
+				Genesis, Exodus, Leviticus, Numbers, Deuteronomy, Joshua, Judges, 1 Samuel, 2 Samuel, 1 Kings, 2 Kings, Isaiah, Jeremiah, Ezekiel, Hosea, Joel, Amos, Obadiah, Jonah, Micah, Nahum, Habakkuk, Zephaniah, Haggai, Zechariah, Malachi, Psalms, Job, Proverbs, Ruth, Song of songs, Ecclesiastes, Lamentations, Esther, Daniel, Ezra, Nehemiah, 1 Chronicles, 2 Chronicles.
+			</small>
+		</fieldset>
+		<fieldset>
+			<legend>Step 2: vocabulary options</legend>
+			<label><input type="checkbox" name="include_voca" checked="checked" onchange="update_forms()"/> Include vocabulary list(s)</label><br/>
+			<label><input type="checkbox" name="combine_voca" checked="checked"/> Combine vocabulary for all passages into one list</label>
+		</fieldset>
+		<fieldset>
+			<legend>Step 3: generate the reader</legend>
+			<label><input type="radio" name="fmt" value="pdf" checked="checked"/> PDF</label>
+			<label><input type="radio" name="fmt" value="tex"/> XeLaTeX</label><br/>
+			<input type="submit" value="Generate"/>
+		</fieldset>
 	</form>
-	<p><small>
-		* Valid book names are:
-		Genesis, Exodus, Leviticus, Numbers, Deuteronomy, Joshua, Judges, 1 Samuel, 2 Samuel, 1 Kings, 2 Kings, Isaiah, Jeremiah, Ezekiel, Hosea, Joel, Amos, Obadiah, Jonah, Micah, Nahum, Habakkuk, Zephaniah, Haggai, Zechariah, Malachi, Psalms, Job, Proverbs, Ruth, Song of songs, Ecclesiastes, Lamentations, Esther, Daniel, Ezra, Nehemiah, 1 Chronicles, 2 Chronicles.
-	</small></p>
 	<p><small>
 		This is open source software, licensed under <a href="https://opensource.org/licenses/MIT">MIT</a>.
 		Written by <a href="https://camilstaps.nl">Camil Staps</a>.
