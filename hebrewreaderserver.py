@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from contextlib import contextmanager
+import gc
 from http.server import HTTPServer, HTTPStatus, BaseHTTPRequestHandler
 import os
 import re
@@ -40,6 +41,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.do_send_file('index.html')
         elif req.path == '/reader':
             self.do_generate_reader(**parse_qs(req.query, keep_blank_values=True))
+            gc.collect()
         elif re.match(r'^\/\.well-known\/acme-challenge\/\w*$', req.path) and \
                 os.path.isfile(req.path[1:]):
             self.do_send_file(req.path[1:])
