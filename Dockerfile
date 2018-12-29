@@ -25,5 +25,5 @@ RUN python3 setup.py install &&\
 	mkdir data &&\
 	./collectcontexts.py --bhsa /bhsa --module c
 
-ENTRYPOINT ["./hebrewreaderserver.py", "--bhsa", "/bhsa", "--module", "c"]
+ENTRYPOINT ["./hebrewreaderserver.py"]
 CMD []
