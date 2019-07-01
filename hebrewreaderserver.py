@@ -55,7 +55,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         with open(fname, 'rb') as f:
             copyfileobj(f, self.wfile)
 
-    def do_generate_reader(self, fmt=['pdf'], include_voca=None, combine_voca=None, passages=None, **kwargs):
+    def do_generate_reader(self, fmt=['pdf'],
+            include_voca=None, combine_voca=None, clearpage_before_voca=None,
+            passages=None, **kwargs):
         if passages is None or len(passages) == 0:
             self.send_quick_response(HTTPStatus.BAD_REQUEST, 'No passages given')
             return
@@ -74,6 +76,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 generate(passages,
                         include_voca is not None and include_voca,
                         combine_voca is not None and combine_voca,
+                        clearpage_before_voca is not None and clearpage_before_voca,
                         tex, None if fmt == 'tex' else pdf,
                         TEMPLATES, quiet=True)
         except TimeoutException as e:

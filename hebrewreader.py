@@ -147,7 +147,8 @@ def load_data(passage):
     api = minitf.MiniApi(**context)
     return api
 
-def generate(passages, include_voca, combine_voca, tex, pdf, templates, quiet=False):
+def generate(passages, include_voca, combine_voca, clearpage_before_voca,
+        tex, pdf, templates, quiet=False):
     tex.write(templates['pre'])
 
     voca = set()
@@ -177,11 +178,15 @@ def generate(passages, include_voca, combine_voca, tex, pdf, templates, quiet=Fa
         if combine_voca:
             voca.update(words)
         else:
+            if clearpage_before_voca:
+                tex.write('\n\n\\clearpage')
             tex.write('\n\n' + templates['prevoca'])
             tex.write('\\\\\n'.join(r'{\hebrewfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
             tex.write('\n' + templates['postvoca'])
 
     if include_voca and combine_voca:
+        if clearpage_before_voca:
+            tex.write('\n\n\\clearpage')
         tex.write('\n\n' + templates['prevoca'])
         tex.write('\\\\\n'.join(r'{\hebrewfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in sorted(voca)))
         tex.write('\n' + templates['postvoca'])
@@ -248,6 +253,8 @@ def main():
             help='Do not generate any vocabulary lists')
     p_misc.add_argument('--combine-voca', action='store_true',
             help='Use one vocabulary list for all passages')
+    p_misc.add_argument('--clearpage-before-voca', action='store_true',
+            help='Start a new page before vocabulary lists')
 
     parser.add_argument('passages', metavar='PASSAGE', nargs='*',
             help=textwrap.dedent('''\
@@ -284,7 +291,9 @@ def main():
         templates['posttext'] = args.post_text_tex.read()
         templates['prevoca'] = args.pre_voca_tex.read()
         templates['postvoca'] = args.post_voca_tex.read()
-        generate(args.passages, args.include_voca, args.combine_voca, args.tex, args.pdf, templates)
+        generate(args.passages,
+                args.include_voca, args.combine_voca, args.clearpage_before_voca,
+                args.tex, args.pdf, templates)
     except Exception as e:
         print(e)
         sys.exit(1)
