@@ -15,7 +15,7 @@ RUN apt-get update -qq &&\
 	rm -rf install-tl-* &&\
 	tlmgr install bidi geometry graphics lm oberdiek polyglossia setspace tools xetex &&\
 	mktexfmt xelatex.fmt &&\
-	curl -L http://www.sbl-site.org/Fonts/SBL_Hbrw.ttf > /usr/local/share/fonts/SBL_Hbrw.ttf &&\
+	curl -H 'User-Agent: stop checking' -L http://www.sbl-site.org/Fonts/SBL_Hbrw.ttf > /usr/local/share/fonts/SBL_Hbrw.ttf &&\
 	fc-cache
 
 RUN mkdir -p /usr/src/app
