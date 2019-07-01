@@ -47,6 +47,8 @@ When you combine multiple passages, you can add `--combine-voca` to include one
 vocabulary list at the end of the document, rather than separate lists after
 each passage.
 
+See `./hebrewreader.py --help` for more options.
+
 ## Web server
 
 The easiest way to access the reader is using the web server. It is not needed
