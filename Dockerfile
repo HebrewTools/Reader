@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM debian:buster-slim
 
 COPY texlive.profile /tmp/texlive.profile
 
