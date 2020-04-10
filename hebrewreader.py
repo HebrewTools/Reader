@@ -148,8 +148,11 @@ def load_data(passage):
     return api
 
 def generate(passages, include_voca, combine_voca, clearpage_before_voca,
-        tex, pdf, templates, quiet=False):
+        large_text, tex, pdf, templates, quiet=False):
     tex.write(templates['pre'])
+
+    if large_text:
+        tex.write('\\largetexttrue\n')
 
     voca = set()
 
@@ -249,6 +252,8 @@ def main():
             metavar='FILE', help='The output PDF file')
 
     p_misc = parser.add_argument_group('Miscellaneous options')
+    p_misc.add_argument('--large-text', dest='large_text', action='store_true',
+            help='Use large font and more line spacing for text')
     p_misc.add_argument('--exclude-voca', dest='include_voca', action='store_false',
             help='Do not generate any vocabulary lists')
     p_misc.add_argument('--combine-voca', action='store_true',
@@ -293,7 +298,7 @@ def main():
         templates['postvoca'] = args.post_voca_tex.read()
         generate(args.passages,
                 args.include_voca, args.combine_voca, args.clearpage_before_voca,
-                args.tex, args.pdf, templates)
+                args.large_text, args.tex, args.pdf, templates)
     except Exception as e:
         print(e)
         sys.exit(1)

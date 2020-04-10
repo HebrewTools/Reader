@@ -31,6 +31,7 @@ RUN export INSTALL_PACKAGES="build-essential curl fontconfig perl python3-dev py
 		ltxcmds \
 		oberdiek \
 		polyglossia \
+		relsize \
 		setspace \
 		tools \
 		xetex \

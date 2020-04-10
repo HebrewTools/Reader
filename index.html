@@ -43,13 +43,17 @@ Job 38:1-bookend</textarea><br/>
 			</small>
 		</fieldset>
 		<fieldset>
-			<legend>Step 2: vocabulary options</legend>
+			<legend>Step 2: text options</legend>
+			<label><input type="checkbox" name="large_text"/> Large text and more line spacing</label><br/>
+		</fieldset>
+		<fieldset>
+			<legend>Step 3: vocabulary options</legend>
 			<label><input type="checkbox" name="include_voca" checked="checked" onchange="update_forms()"/> Include vocabulary list(s)</label><br/>
 			<label><input type="checkbox" name="combine_voca" checked="checked"/> Combine vocabulary for all passages into one list</label><br/>
 			<label><input type="checkbox" name="clearpage_before_voca"/> Start new page before vocabulary list(s)</label>
 		</fieldset>
 		<fieldset>
-			<legend>Step 3: generate the reader</legend>
+			<legend>Step 4: generate the reader</legend>
 			<label><input type="radio" name="fmt" value="pdf" checked="checked"/> PDF</label>
 			<label><input type="radio" name="fmt" value="tex"/> XeLaTeX</label><br/>
 			<input type="submit" value="Generate"/>

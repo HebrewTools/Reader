@@ -1,7 +1,10 @@
 \documentclass[a4paper]{article}
 
+\newif\iflargetext
+
 \usepackage[margin=18mm,bottom=25mm]{geometry}
 \usepackage{setspace}
+\usepackage{relsize}
 \usepackage{multicol}
 
 \makeatletter
@@ -16,10 +19,9 @@
 \author{HebrewTools}
 
 \newcommand{\rdrchap}[1]{\begin{english}\setRL\small\textbf{#1}\end{english}}
-\newcommand{\rdrverse}[1]{\raisebox{2.5pt}{\tiny#1}}
+\newcommand{\rdrverse}[1]{\raisebox{2.5pt}{\smaller[4]#1}}
 
 \newcommand{\setuma}{~~~~{\scriptsize ס}~~~~}
 \newcommand{\petucha}{~~~~{\footnotesize פ}~~~~}
 
 \begin{document}
-\setstretch{1.3}
