@@ -16,7 +16,7 @@ setup(
     author='Camil Staps',
     author_email='info@camilstaps.nl',
     license='MIT',
-    install_requires=['text-fabric==5.*'],
+    install_requires=['text-fabric==7.*'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',

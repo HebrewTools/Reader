@@ -249,7 +249,7 @@ def main():
             metavar='FILE', help='The output PDF file')
 
     p_misc = parser.add_argument_group('Miscellaneous options')
-    p_misc.add_argument('--exclude-voca', target='include_voca', action='store_false',
+    p_misc.add_argument('--exclude-voca', dest='include_voca', action='store_false',
             help='Do not generate any vocabulary lists')
     p_misc.add_argument('--combine-voca', action='store_true',
             help='Use one vocabulary list for all passages')

@@ -1,6 +1,6 @@
 from functools import reduce
 
-from tf.api import NodeFeature, EdgeFeature
+from tf.core.api import NodeFeature, EdgeFeature
 
 class MiniApi(object):
     def __init__(
@@ -22,10 +22,10 @@ class MiniApi(object):
         for f in features:
             fType = featureType[f]
             if fType:
-                fObj = EdgeFeature(self, features[f], fType == 1)
+                fObj = EdgeFeature(self, None, features[f], fType == 1)
                 setattr(self.E, f, fObj)
             else:
-                fObj = NodeFeature(self, features[f])
+                fObj = NodeFeature(self, None, features[f])
                 setattr(self.F, f, fObj)
 
         self.L = Locality(self, locality)
