@@ -8,15 +8,15 @@ ENV PATH="/usr/local/texlive/2020/bin/x86_64-linux:${PATH}"
 WORKDIR /usr/src/app
 
 RUN export INSTALL_PACKAGES="build-essential curl fontconfig perl python3-dev python3-setuptools subversion" &&\
-	export PACKAGES="libfontconfig1 python3 tar" &&\
+	export PACKAGES="libffi-dev libfontconfig1 python3 tar" &&\
 	apt-get update -qq &&\
 	apt-get upgrade -qq &&\
 	apt-get install -qq $INSTALL_PACKAGES $PACKAGES &&\
 	svn export https://github.com/ETCBC/bhsa/trunk/tf/c /bhsa/c &&\
 	cd /tmp &&\
-	curl -L http://ctan.cs.uu.nl/systems/texlive/tlnet/install-tl-unx.tar.gz | tar xz &&\
+	curl -L http://mirrors.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz | tar xz &&\
 	cd install-tl-* &&\
-	./install-tl -repository http://ctan.cs.uu.nl/systems/texlive/tlnet -profile /tmp/texlive.profile &&\
+	./install-tl -repository http://mirrors.ctan.org/systems/texlive/tlnet -profile /tmp/texlive.profile &&\
 	cd .. &&\
 	rm -rf install-tl-* &&\
 	tlmgr install \
