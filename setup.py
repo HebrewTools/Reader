@@ -18,7 +18,7 @@ setup(
     license='MIT',
     install_requires=['text-fabric==7.*'],
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Education',
         'Intended Audience :: End Users/Desktop',
