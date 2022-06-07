@@ -148,11 +148,13 @@ def load_data(passage):
     return api
 
 def generate(passages, include_voca, combine_voca, clearpage_before_voca,
-        large_text, tex, pdf, templates, quiet=False):
+        large_text, larger_text, tex, pdf, templates, quiet=False):
     tex.write(templates['pre'])
 
     if large_text:
         tex.write('\\largetexttrue\n')
+    if larger_text:
+        tex.write('\\largertexttrue\n')
 
     voca = set()
 
@@ -184,7 +186,7 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
             if clearpage_before_voca:
                 tex.write('\n\n\\clearpage')
             tex.write('\n\n' + templates['prevoca'])
-            tex.write('\\\\\n'.join(r'{\hebrewfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
+            tex.write('\\\\\n'.join(r'{\hebrewfont\vocafontsize\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
             tex.write('\n' + templates['postvoca'])
 
     if include_voca and combine_voca:
@@ -298,7 +300,7 @@ def main():
         templates['postvoca'] = args.post_voca_tex.read()
         generate(args.passages,
                 args.include_voca, args.combine_voca, args.clearpage_before_voca,
-                args.large_text, args.tex, args.pdf, templates)
+                args.large_text, False, args.tex, args.pdf, templates)
     except Exception as e:
         print(e)
         sys.exit(1)

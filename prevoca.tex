@@ -1,7 +1,22 @@
 \setstretch{1}
 \section*{Vocabulary}
-\begin{multicols}{5}
-\small
+\iflargetext
+	\iflargertext
+		\setstretch{1.5}
+		\let\vocafontsize=\Large
+		\begin{multicols}{4}
+		\large
+	\else
+		\setstretch{1.2}
+		\let\vocafontsize=\large
+		\begin{multicols}{4}
+		\normalsize
+	\fi
+\else
+	\let\vocafontsize=\normalsize
+	\begin{multicols}{5}
+	\small
+\fi
 \parindent=0pt
 \hangindent=1em
 \flushleft

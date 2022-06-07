@@ -1,6 +1,6 @@
 \section*{\thepassage}
-\setstretch{\iflargetext 1.7\else 1.3\fi}
-\iflargetext\Large\fi
+\setstretch{\iflargetext\iflargertext 2.1\else 1.7\fi\else 1.3\fi}
+\iflargetext\iflargertext\LARGE\else\Large\fi\fi
 \begin{hebrew}
 \RTLmulticolcolumns
 \iflargetext\else\begin{multicols}{2}\fi
