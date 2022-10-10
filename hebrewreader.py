@@ -22,23 +22,24 @@ PASSAGE_RGX = (
 )
 
 FEATURES = 'g_word_utf8 gloss lex_utf8 otype trailer_utf8 voc_lex_utf8'
+SYR_FEATURES = 'otype trailer word'
 
 VERSE_NODES = dict()
 
 def load_verse_nodes():
     global VERSE_NODES
-
     with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'rb') as f:
         VERSE_NODES = pickle.load(f)
 
-def parse_passage(passage):
+def parse_passage(passage, lang):
     match = re.match(PASSAGE_RGX, passage)
+    print(match)
     if match is None:
         match = {'book': passage, 'startchap': 1, 'startverse': 1,
                 'endchap': None, 'endverse': None, 'endref': 'bookend'}
     else:
         match = match.groupdict()
-
+    print(match)
     match['book'] = match['book'].replace(' ', '_')
     match['startchap'] = int(match['startchap'])
     if match['startverse'] is not None:
@@ -47,7 +48,6 @@ def parse_passage(passage):
         match['endchap'] = int(match['endchap'])
     if match['endverse'] is not None:
         match['endverse'] = int(match['endverse'])
-
     try:
         if match['endchap'] is None:
             if match['startverse'] is None and match['endref'] is None:
@@ -56,30 +56,27 @@ def parse_passage(passage):
                 match['endchap'] = match['startchap']
                 match['endverse'] = match['startverse']
         elif match['endverse'] is None:
-            match['endverse'] = len(VERSE_NODES[match['book']][match['endchap']])
-
+            match['endverse'] = len(VERSE_NODES[lang][match['book']][match['endchap']])
         if match['startverse'] is None:
             match['startverse'] = 1
-
         if match['endref'] == 'end':
             match['endchap'] = match['startchap']
-            match['endverse'] = len(VERSE_NODES[match['book']][match['endchap']])
+            match['endverse'] = len(VERSE_NODES[lang][match['book']][match['endchap']])
         elif match['endref'] == 'bookend':
-            match['endchap'] = len(VERSE_NODES[match['book']])
-            match['endverse'] = len(VERSE_NODES[match['book']][match['endchap']])
+            match['endchap'] = len(VERSE_NODES[lang][match['book']])
+            match['endverse'] = len(VERSE_NODES[lang][match['book']][match['endchap']])
     except:
-        raise ValueError('Could not find reference "{}"'.format(passage))
-
+        raise ValueError('Could not find reference "{}" in the {} language'.format(passage, lang))
     match.pop('endref')
     return match
 
-def verses_in_passage(passage):
+def verses_in_passage(passage, lang):
     for chap in range(passage['startchap'], passage['endchap']+1):
         start = passage['startverse'] if chap == passage['startchap'] else 1
         if chap == passage['endchap']:
             end = passage['endverse']
         else:
-            end = len(VERSE_NODES[passage['book']][chap])
+            end = len(VERSE_NODES[lang][passage['book']][chap])
 
         for verse in range(start, end+1):
             yield (passage['book'], chap, verse)
@@ -95,17 +92,17 @@ def fix_gloss(gloss):
         return 'I'
     return re.sub(r'<(.*)>', r'\\textit{\1}', gloss)
 
-def get_passage_and_words(passage, api, separate_chapters=True, verse_nos=True):
+def get_passage_and_words(passage, api, lang, separate_chapters=True, verse_nos=True):
     text = []
     words = set()
 
     last_chapter = None
-    for verse in verses_in_passage(passage):
+    for verse in verses_in_passage(passage, lang):
         if verse[1] != last_chapter:
             last_chapter = verse[1]
             if separate_chapters:
                 text.append('\n')
-        node = VERSE_NODES[verse[0]][verse[1]][verse[2]]
+        node = VERSE_NODES[lang][verse[0]][verse[1]][verse[2]]
         wordnodes = api.L.d(node, otype='word')
         thistext = ''
         if verse_nos:
@@ -114,24 +111,29 @@ def get_passage_and_words(passage, api, separate_chapters=True, verse_nos=True):
             thistext += r'\rdrverse{%d} ' % verse[2]
         thiswords = []
         for word in wordnodes:
-            thiswords.append(
-                    api.F.g_word_utf8.v(word) +
-                    fix_trailer(api.F.trailer_utf8.v(word)))
-            lex = api.L.u(word, otype='lex')[0]
-            words.add((api.F.lex_utf8.v(word), api.F.voc_lex_utf8.v(lex), fix_gloss(api.F.gloss.v(lex))))
+            if lang == 'hebrew':
+                thiswords.append(
+                        api.F.g_word_utf8.v(word) +
+                        fix_trailer(api.F.trailer_utf8.v(word)))
+                lex = api.L.u(word, otype='lex')[0]
+                words.add((api.F.lex_utf8.v(word), api.F.voc_lex_utf8.v(lex), fix_gloss(api.F.gloss.v(lex))))
+            elif lang == 'syriac':
+                thiswords.append(
+                        api.F.word.v(word) +
+                        fix_trailer(api.F.trailer.v(word)))
         thistext += ''.join(thiswords)
         text.append(thistext)
 
     return text, sorted(words)
 
-def load_data(passage):
+def load_data(passage, lang):
     seen = set()
     context = dict()
-    for book, chap, _ in verses_in_passage(passage):
+    for book, chap, _ in verses_in_passage(passage, lang):
         if (book,chap) in seen:
             continue
         seen.add((book, chap))
-        fname = book + '_' + str(chap) + '.pkl'
+        fname = lang + '_' + book + '_' + str(chap) + '.pkl'
         with open(os.path.join(DATADIR, fname), 'rb') as f:
             add_context = pickle.load(f)
             for key, val in add_context.items():
@@ -148,8 +150,9 @@ def load_data(passage):
     return api
 
 def generate(passages, include_voca, combine_voca, clearpage_before_voca,
-        large_text, larger_text, tex, pdf, templates, quiet=False):
+        large_text, larger_text, tex, pdf, templates, lang, quiet=False):
     tex.write(templates['pre'])
+    lang = lang[0]
 
     if large_text:
         tex.write('\\largetexttrue\n')
@@ -159,7 +162,7 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
     voca = set()
 
     for passage_text in passages:
-        passage = parse_passage(passage_text)
+        passage = parse_passage(passage_text, lang)
 
         passage_pretty = '{} {}:{} - {}:{}'.format(
             passage['book'].replace('_', ' '),
@@ -167,15 +170,18 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
             passage['endchap'], passage['endverse'])
         tex.write(r'\def\thepassage{%s}' % passage_pretty)
 
-        try:
-            api = load_data(passage)
-            text, words = get_passage_and_words(passage, api)
-        except:
-            raise ValueError('Could not find reference "{}"'.format(passage_text))
+        api = load_data(passage, lang)
+        text, words = get_passage_and_words(passage, api, lang)
 
-        tex.write('\n\n' + templates['pretext'])
+        if lang == "hebrew":
+            tex.write('\n\n' + templates['pretext'])
+        elif lang == "syriac":
+            tex.write('\n\n' + templates['pretext_syr'])
         tex.write('\n'.join(text))
-        tex.write('\n' + templates['posttext'])
+        if lang == "hebrew":
+            tex.write('\n' + templates['posttext'])
+        elif lang == "syriac":
+            tex.write('\n' + templates['posttext_syr'])
 
         if not include_voca:
             continue
@@ -186,14 +192,20 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
             if clearpage_before_voca:
                 tex.write('\n\n\\clearpage')
             tex.write('\n\n' + templates['prevoca'])
-            tex.write('\\\\\n'.join(r'{\hebrewfont\vocafontsize\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
+            if lang == "hebrew":
+                tex.write('\\\\\n'.join(r'{\hebrewfont\vocafontsize\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
+            elif lang == "syriac":
+                tex.write('\\\\\n'.join(r'{\syriacfont\vocafontsize\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
             tex.write('\n' + templates['postvoca'])
 
-    if include_voca and combine_voca:
+    if include_voca and combine_voca and lang != 'syriac':
         if clearpage_before_voca:
             tex.write('\n\n\\clearpage')
         tex.write('\n\n' + templates['prevoca'])
-        tex.write('\\\\\n'.join(r'{\hebrewfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in sorted(voca)))
+        if lang == "hebrew":
+            tex.write('\\\\\n'.join(r'{\hebrewfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in sorted(voca)))
+        elif lang == "syriac":
+            tex.write('\\\\\n'.join(r'{\syriacfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in sorted(voca)))
         tex.write('\n' + templates['postvoca'])
 
     tex.write(templates['post'])
@@ -300,7 +312,7 @@ def main():
         templates['postvoca'] = args.post_voca_tex.read()
         generate(args.passages,
                 args.include_voca, args.combine_voca, args.clearpage_before_voca,
-                args.large_text, False, args.tex, args.pdf, templates)
+                args.large_text, False, args.tex, args.pdf, args.lang, templates)
     except Exception as e:
         print(e)
         sys.exit(1)

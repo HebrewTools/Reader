@@ -58,7 +58,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def do_generate_reader(self, fmt=['pdf'],
             include_voca=None, combine_voca=None, clearpage_before_voca=None,
             text_size=None,
-            passages=None, **kwargs):
+            passages=None, lang=None, **kwargs):
         if passages is None or len(passages) == 0:
             self.send_quick_response(HTTPStatus.BAD_REQUEST, 'No passages given')
             return
@@ -81,7 +81,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         text_size is not None and int(text_size[0]) > 0,
                         text_size is not None and int(text_size[0]) > 1,
                         tex, None if fmt == 'tex' else pdf,
-                        TEMPLATES, quiet=True)
+                        TEMPLATES, lang, quiet=False)
         except TimeoutException as e:
             self.send_quick_response(HTTPStatus.REQUEST_TIMEOUT, str(e))
             return
@@ -106,7 +106,9 @@ def main():
     TEMPLATES['pre'] = open('pre.tex', encoding='utf-8').read()
     TEMPLATES['post'] = open('post.tex', encoding='utf-8').read()
     TEMPLATES['pretext'] = open('pretext.tex', encoding='utf-8').read()
+    TEMPLATES['pretext_syr'] = open('pretext_syr.tex', encoding='utf-8').read()
     TEMPLATES['posttext'] = open('posttext.tex', encoding='utf-8').read()
+    TEMPLATES['posttext_syr'] = open('posttext_syr.tex', encoding='utf-8').read()
     TEMPLATES['prevoca'] = open('prevoca.tex', encoding='utf-8').read()
     TEMPLATES['postvoca'] = open('postvoca.tex', encoding='utf-8').read()
 
