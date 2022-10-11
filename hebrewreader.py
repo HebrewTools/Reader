@@ -157,8 +157,11 @@ def load_data(passage, lang):
 
 def generate(passages, include_voca, combine_voca, clearpage_before_voca,
         large_text, larger_text, tex, pdf, templates, lang, quiet=False):
-    tex.write(templates['pre'])
     lang = lang[0]
+    if lang != "greek":
+        tex.write(templates['pre'])
+    else:
+        tex.write(templates['greek_pre'])
 
     if large_text:
         tex.write('\\largetexttrue\n')

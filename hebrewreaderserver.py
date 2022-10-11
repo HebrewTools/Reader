@@ -104,6 +104,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 def main():
     TEMPLATES['pre'] = open('pre.tex', encoding='utf-8').read()
+    TEMPLATES['greek_pre'] = open('greek_pre.tex', encoding='utf-8').read()
     TEMPLATES['post'] = open('post.tex', encoding='utf-8').read()
     TEMPLATES['pretext'] = open('pretext.tex', encoding='utf-8').read()
     TEMPLATES['pretext_syr'] = open('pretext_syr.tex', encoding='utf-8').read()
