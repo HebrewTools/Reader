@@ -38,6 +38,7 @@ RUN apt-get update -qq &&\
 	fc-cache
 
 RUN svn export https://github.com/ETCBC/peshitta/trunk/tf/0.2 /syriac/c
+RUN svn export https://github.com/CenterBLC/LXX/trunk/tf/1935 /greek/c
 
 COPY setup.py README.md /usr/src/app/
 
@@ -47,9 +48,11 @@ RUN cd /usr/src/app && mkdir data
 COPY hebrewreader.py hebrewreaderserver.py collectcontexts.py minitf.py *.html /usr/src/app/
 RUN cd /usr/src/app && ./collectcontexts.py --bhsa /bhsa --module c --lang hebrew
 RUN cd /usr/src/app && ./collectcontexts.py --bhsa /syriac --module c --lang syriac
+RUN cd /usr/src/app && ./collectcontexts.py --bhsa /greek --module c --lang greek
 
 
 COPY NotoSansSyriac-Regular.ttf /usr/local/share/fonts/syriac_2.ttf
+COPY NotoSerif-Regular.ttf /usr/local/share/fonts/greek.ttf
 
 RUN fc-cache -f && rm -rf /var/cache/*
 

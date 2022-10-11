@@ -107,8 +107,10 @@ def main():
     TEMPLATES['post'] = open('post.tex', encoding='utf-8').read()
     TEMPLATES['pretext'] = open('pretext.tex', encoding='utf-8').read()
     TEMPLATES['pretext_syr'] = open('pretext_syr.tex', encoding='utf-8').read()
+    TEMPLATES['pretext_grk'] = open('pretext_grk.tex', encoding='utf-8').read()
     TEMPLATES['posttext'] = open('posttext.tex', encoding='utf-8').read()
     TEMPLATES['posttext_syr'] = open('posttext_syr.tex', encoding='utf-8').read()
+    TEMPLATES['posttext_grk'] = open('posttext_grk.tex', encoding='utf-8').read()
     TEMPLATES['prevoca'] = open('prevoca.tex', encoding='utf-8').read()
     TEMPLATES['postvoca'] = open('postvoca.tex', encoding='utf-8').read()
 

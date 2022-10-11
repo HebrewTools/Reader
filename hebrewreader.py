@@ -23,6 +23,7 @@ PASSAGE_RGX = (
 
 FEATURES = 'g_word_utf8 gloss lex_utf8 otype trailer_utf8 voc_lex_utf8'
 SYR_FEATURES = 'otype trailer word'
+GRK_FEATURES = 'g_cons_utf8 gloss lex_utf8 otype word'
 
 VERSE_NODES = dict()
 
@@ -121,6 +122,11 @@ def get_passage_and_words(passage, api, lang, separate_chapters=True, verse_nos=
                 thiswords.append(
                         api.F.word.v(word) +
                         fix_trailer(api.F.trailer.v(word)))
+            elif lang == 'greek':
+                thiswords.append(
+                        api.F.word.v(word) + " ")
+                # lex = api.L.u(word, otype='lex')[0]
+                words.add((api.F.lex_utf8.v(word), api.F.lex_utf8.v(word), fix_gloss(api.F.gloss.v(word))))
         thistext += ''.join(thiswords)
         text.append(thistext)
 
@@ -177,11 +183,15 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
             tex.write('\n\n' + templates['pretext'])
         elif lang == "syriac":
             tex.write('\n\n' + templates['pretext_syr'])
+        elif lang == "greek":
+            tex.write('\n\n' + templates['pretext_grk'])
         tex.write('\n'.join(text))
         if lang == "hebrew":
             tex.write('\n' + templates['posttext'])
         elif lang == "syriac":
             tex.write('\n' + templates['posttext_syr'])
+        elif lang == "greek":
+            tex.write('\n' + templates['posttext_grk'])
 
         if not include_voca:
             continue
@@ -196,6 +206,8 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
                 tex.write('\\\\\n'.join(r'{\hebrewfont\vocafontsize\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
             elif lang == "syriac":
                 tex.write('\\\\\n'.join(r'{\syriacfont\vocafontsize\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
+            elif lang == "greek":
+                tex.write('\\\\\n'.join(r'{\greekfont\vocafontsize\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in words))
             tex.write('\n' + templates['postvoca'])
 
     if include_voca and combine_voca and lang != 'syriac':
@@ -206,6 +218,8 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
             tex.write('\\\\\n'.join(r'{\hebrewfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in sorted(voca)))
         elif lang == "syriac":
             tex.write('\\\\\n'.join(r'{\syriacfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in sorted(voca)))
+        elif lang == "greek":
+            tex.write('\\\\\n'.join(r'{\greekfont\RL{%s}} \begin{english}%s\end{english}' % (lex,gloss) for _, lex, gloss in sorted(voca)))
         tex.write('\n' + templates['postvoca'])
 
     tex.write(templates['post'])

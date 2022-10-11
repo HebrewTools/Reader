@@ -5,7 +5,7 @@ import pickle
 
 from tf.fabric import Fabric
 
-from hebrewreader import DATADIR, FEATURES, SYR_FEATURES, load_data
+from hebrewreader import DATADIR, FEATURES, GRK_FEATURES, SYR_FEATURES, load_data
 from minitf import gather_context
 
 VERSE_NODES = dict()
@@ -60,6 +60,8 @@ def gather(locations, modules, lang):
     TF = Fabric(locations=locations, modules=modules, silent=True)
     if lang[0] == 'syriac':
         use_features = SYR_FEATURES
+    elif lang[0] == 'greek':
+        use_features = GRK_FEATURES
     else:
         use_features = FEATURES
     api = TF.load(use_features, silent=True)
@@ -73,12 +75,23 @@ def gather(locations, modules, lang):
     if lang[0] == 'hebrew':
         with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'wb') as f:
             pickle.dump(VERSE_NODES, f)
-    else:
+    elif lang[0] == 'syriac':
         with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'rb') as f:
             HEB_VERSE_NODES = pickle.load(f)
             FIN_VERSE_NODES = {
                 "hebrew": HEB_VERSE_NODES['hebrew'],
                 "syriac": VERSE_NODES['syriac']
+            }
+
+            with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'wb') as f:
+                pickle.dump(FIN_VERSE_NODES, f)
+    elif lang[0] == 'greek':
+        with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'rb') as f:
+            PREV_VERSE_NODES = pickle.load(f)
+            FIN_VERSE_NODES = {
+                "hebrew": PREV_VERSE_NODES['hebrew'],
+                "syriac": PREV_VERSE_NODES['syriac'],
+                "greek": VERSE_NODES['greek']
             }
 
             with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'wb') as f:
