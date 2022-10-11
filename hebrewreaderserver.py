@@ -73,7 +73,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         pdf = tempfile.mkstemp(suffix='.pdf', prefix='reader')[1]
 
         try:
-            with time_limit(10):
+            with time_limit(30):
                 generate(passages,
                         include_voca is not None and include_voca,
                         combine_voca is not None and combine_voca,
