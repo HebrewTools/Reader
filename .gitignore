@@ -1,7 +1,6 @@
 *.aux
 *.log
 *.pdf
-*.tex
 
 !pre.tex
 !post.tex

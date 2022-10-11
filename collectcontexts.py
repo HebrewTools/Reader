@@ -5,22 +5,22 @@ import pickle
 
 from tf.fabric import Fabric
 
-from hebrewreader import DATADIR, FEATURES, load_data
+from hebrewreader import DATADIR, FEATURES, GRK_FEATURES, SYR_FEATURES, load_data
 from minitf import gather_context
 
 VERSE_NODES = dict()
 
-def gather_chapter(api, book, chap):
+def gather_chapter(api, book, chap, lang):
     global VERSE_NODES
     nodes = set()
     node = api.T.nodeFromSection((book, chap, 1))
     if node is None:
         return None
     verse = 1
-    VERSE_NODES[book][chap] = dict()
+    VERSE_NODES[lang][book][chap] = dict()
     while api.T.sectionFromNode(node)[0:2] == (book,chap):
         verse = api.T.sectionFromNode(node)[2]
-        VERSE_NODES[book][chap][verse] = node
+        VERSE_NODES[lang][book][chap][verse] = node
         nodes.add(node)
         words = api.L.d(node, 'word')
         nodes.update(set(words))
@@ -32,40 +32,70 @@ def gather_chapter(api, book, chap):
         node = next_verse[0]
     return nodes
 
-def gather_book(api, book):
+def gather_book(api, book, lang):
     global VERSE_NODES
     result = dict()
     chap = 1
-    VERSE_NODES[book] = dict()
+    VERSE_NODES[lang][book] = dict()
     while True:
-        nodes = gather_chapter(api, book, chap)
+        nodes = gather_chapter(api, book, chap, lang)
         if nodes is None:
             return result
         result[chap] = nodes
         chap += 1
 
-def dump_book(api, book):
-    nodesets = gather_book(api, book)
+def dump_book(api, book, lang, use_features):
+    nodesets = gather_book(api, book, lang)
     for chap, nodes in nodesets.items():
         context = gather_context(
                 api,
-                {'features': FEATURES, 'locality': 'udnp'},
+                {'features': use_features, 'locality': 'udnp'},
                 (nodes,))
-        fname = book + '_' + str(chap) + '.pkl'
+        fname = lang + '_' + book + '_' + str(chap) + '.pkl'
         with open(os.path.join(DATADIR, fname), 'wb') as f:
             pickle.dump(context, f)
 
-def gather(locations, modules):
+def gather(locations, modules, lang):
+    global VERSE_NODES
     TF = Fabric(locations=locations, modules=modules, silent=True)
-    api = TF.load(FEATURES, silent=True)
+    if lang[0] == 'syriac':
+        use_features = SYR_FEATURES
+    elif lang[0] == 'greek':
+        use_features = GRK_FEATURES
+    else:
+        use_features = FEATURES
+    api = TF.load(use_features, silent=True)
+
+    VERSE_NODES[lang[0]] = {}
 
     for node in api.F.otype.s('book'):
         book = api.T.sectionFromNode(node)[0]
-        print(book)
-        dump_book(api, book)
+        dump_book(api, book, lang[0], use_features)
 
-    with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'wb') as f:
-        pickle.dump(VERSE_NODES, f)
+    if lang[0] == 'hebrew':
+        with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'wb') as f:
+            pickle.dump(VERSE_NODES, f)
+    elif lang[0] == 'syriac':
+        with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'rb') as f:
+            HEB_VERSE_NODES = pickle.load(f)
+            FIN_VERSE_NODES = {
+                "hebrew": HEB_VERSE_NODES['hebrew'],
+                "syriac": VERSE_NODES['syriac']
+            }
+
+            with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'wb') as f:
+                pickle.dump(FIN_VERSE_NODES, f)
+    elif lang[0] == 'greek':
+        with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'rb') as f:
+            PREV_VERSE_NODES = pickle.load(f)
+            FIN_VERSE_NODES = {
+                "hebrew": PREV_VERSE_NODES['hebrew'],
+                "syriac": PREV_VERSE_NODES['syriac'],
+                "greek": VERSE_NODES['greek']
+            }
+
+            with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'wb') as f:
+                pickle.dump(FIN_VERSE_NODES, f)
 
 def main():
     parser = ArgumentParser(description='Gather the TF contexts to reduce memory usage in the HTTP server')
@@ -75,10 +105,11 @@ def main():
             help='Location of the BHSA data')
     p_data.add_argument('--module', '-m', nargs=1, required=True,
             help='Text-fabric module to load')
+    p_data.add_argument('--lang', '-l', nargs=1, required=True,
+            help='Which language data to load')
 
     args = parser.parse_args()
-
-    gather(args.bhsa, args.module)
+    gather(args.bhsa, args.module, args.lang)
 
 if __name__ == '__main__':
     main()
