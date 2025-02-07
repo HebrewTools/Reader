@@ -10,7 +10,7 @@ import tempfile
 from urllib.parse import urlparse, parse_qs
 
 from tf.fabric import Fabric
-from hebrewreader import generate, load_verse_nodes
+from hebrewreader import generate_txt, generate_tex, generate_pdf, load_verse_nodes
 
 TEMPLATES = {}
 
@@ -63,25 +63,47 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_quick_response(HTTPStatus.BAD_REQUEST, 'No passages given')
             return
         passages = [p.strip() for ps in passages for p in ps.split('\n')]
-        fmt = fmt[-1]
-        if fmt != 'pdf' and fmt != 'tex':
-            self.send_quick_response(HTTPStatus.BAD_REQUEST, 'Unknown format')
-            return
 
-        tex = tempfile.mkstemp(suffix='.tex', prefix='reader')
-        tex = open(tex[1], 'w', encoding='utf-8')
-        pdf = tempfile.mkstemp(suffix='.pdf', prefix='reader')[1]
+        fmt = fmt[-1]
 
         try:
             with time_limit(10):
-                generate(passages,
-                        include_voca is not None and include_voca,
-                        combine_voca is not None and combine_voca,
-                        clearpage_before_voca is not None and clearpage_before_voca,
-                        text_size is not None and int(text_size[0]) > 0,
-                        text_size is not None and int(text_size[0]) > 1,
-                        tex, None if fmt == 'tex' else pdf,
-                        TEMPLATES, quiet=True)
+                if fmt == 'txt':
+                    txt = tempfile.mkstemp(suffix='.txt', prefix='reader')
+                    txt = open(txt[1], 'w', encoding='utf-8')
+                    output = generate_txt(passages,
+                            include_voca is not None and include_voca,
+                            combine_voca is not None and combine_voca,
+                            txt)
+                    content_type = 'txt/plain'
+                elif fmt == 'tex':
+                    tex = tempfile.mkstemp(suffix='.tex', prefix='reader')
+                    tex = open(tex[1], 'w', encoding='utf-8')
+                    output = generate_tex(passages,
+                            include_voca is not None and include_voca,
+                            combine_voca is not None and combine_voca,
+                            clearpage_before_voca is not None and clearpage_before_voca,
+                            text_size is not None and int(text_size[0]) > 0,
+                            text_size is not None and int(text_size[0]) > 1,
+                            tex,
+                            TEMPLATES)
+                    content_type = 'application/x-latex'
+                elif fmt == 'pdf':
+                    tex = tempfile.mkstemp(suffix='.tex', prefix='reader')
+                    tex = open(tex[1], 'w', encoding='utf-8')
+                    pdf = tempfile.mkstemp(suffix='.pdf', prefix='reader')[1]
+                    _, output = generate_pdf(passages,
+                            include_voca is not None and include_voca,
+                            combine_voca is not None and combine_voca,
+                            clearpage_before_voca is not None and clearpage_before_voca,
+                            text_size is not None and int(text_size[0]) > 0,
+                            text_size is not None and int(text_size[0]) > 1,
+                            tex, pdf,
+                            TEMPLATES, quiet=True)
+                    content_type = 'application/pdf'
+                else:
+                    self.send_quick_response(HTTPStatus.BAD_REQUEST, 'Unknown format')
+                    return
         except TimeoutException as e:
             self.send_quick_response(HTTPStatus.REQUEST_TIMEOUT, str(e))
             return
@@ -89,9 +111,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_quick_response(HTTPStatus.INTERNAL_SERVER_ERROR, str(e))
             return
 
-        output = tex.name if fmt == 'tex' else pdf
-        content_type = 'application/x-latex' if fmt == 'tex' else 'application/pdf'
         filename = 'reader.' + fmt
+
         with open(output, 'rb') as f:
             self.send_response(HTTPStatus.OK, 'OK')
             self.send_header('Content-Type', '{}; charset=utf-8'.format(content_type))

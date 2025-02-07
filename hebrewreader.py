@@ -84,18 +84,18 @@ def verses_in_passage(passage):
         for verse in range(start, end+1):
             yield (passage['book'], chap, verse)
 
-def fix_trailer(trailer):
+def fix_trailer(trailer, templates):
     return trailer\
             .replace('\n', '')\
-            .replace('\u05e1', r'\setuma{}')\
-            .replace('\u05e4', r'\petucha{}')
+            .replace('\u05e1', templates['setuma'])\
+            .replace('\u05e4', templates['petucha'])
 
-def fix_gloss(gloss):
+def fix_gloss(gloss, templates):
     if gloss == 'i':
         return 'I'
-    return re.sub(r'<(.*)>', r'\\textit{\1}', gloss)
+    return re.sub(r'<(.*)>', templates['meta_gloss'], gloss)
 
-def get_passage_and_words(passage, api, separate_chapters=True, verse_nos=True):
+def get_passage_and_words(passage, api, templates, separate_chapters=True, verse_nos=True):
     text = []
     words = set()
 
@@ -110,15 +110,15 @@ def get_passage_and_words(passage, api, separate_chapters=True, verse_nos=True):
         thistext = ''
         if verse_nos:
             if verse[2] == 1:
-                thistext += r'\rdrchap{%d}' % verse[1]
-            thistext += r'\rdrverse{%d} ' % verse[2]
+                thistext += templates['chapno'] % verse[1]
+            thistext += templates['verseno'] % verse[2] + ' '
         thiswords = []
         for word in wordnodes:
             thiswords.append(
                     api.F.g_word_utf8.v(word) +
-                    fix_trailer(api.F.trailer_utf8.v(word)))
+                    fix_trailer(api.F.trailer_utf8.v(word), templates))
             lex = api.L.u(word, otype='lex')[0]
-            words.add((api.F.lex_utf8.v(word), api.F.voc_lex_utf8.v(lex), fix_gloss(api.F.gloss.v(lex))))
+            words.add((api.F.lex_utf8.v(word), api.F.voc_lex_utf8.v(lex), fix_gloss(api.F.gloss.v(lex), templates)))
         thistext += ''.join(thiswords)
         text.append(thistext)
 
@@ -147,8 +147,52 @@ def load_data(passage):
     api = minitf.MiniApi(**context)
     return api
 
-def generate(passages, include_voca, combine_voca, clearpage_before_voca,
-        large_text, larger_text, tex, pdf, templates, quiet=False):
+def generate_txt(passages, include_voca, combine_voca, txt):
+    voca = set()
+
+    templates = {
+            'chapno': '%d:', 'verseno': '%d',
+            'setuma': 'ס', 'petucha': 'פ',
+            'meta_gloss': r'<\1>',
+            }
+
+    first = True
+    for passage_text in passages:
+        passage = parse_passage(passage_text)
+
+        if not first:
+            txt.write('\n\n')
+        first = False
+
+        try:
+            api = load_data(passage)
+            text, words = get_passage_and_words(passage, api, templates)
+        except:
+            raise ValueError('Could not find reference "{}"'.format(passage_text))
+
+        passage_pretty = '{} {}:{} - {}:{}'.format(
+            passage['book'].replace('_', ' '),
+            passage['startchap'], passage['startverse'],
+            passage['endchap'], passage['endverse'])
+        txt.write(passage_pretty + '\n'.join(text))
+
+        if not include_voca:
+            continue
+
+        if combine_voca:
+            voca.update(words)
+        else:
+            txt.write('\n\n' + '\n'.join('%s: %s' % (lex,gloss) for _, lex, gloss in words))
+
+    if include_voca and combine_voca:
+        txt.write('\n\n' + '\n'.join('%s: %s' % (lex,gloss) for _, lex, gloss in sorted(voca)))
+
+    txt.close()
+
+    return txt.name
+
+def generate_tex(passages, include_voca, combine_voca, clearpage_before_voca,
+        large_text, larger_text, tex, templates):
     tex.write(templates['pre'])
 
     if large_text:
@@ -157,6 +201,12 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
         tex.write('\\largertexttrue\n')
 
     voca = set()
+
+    text_templates = {
+            'chapno': r'\rdrchap{%d}', 'verseno': r'\rdrverse{%d}',
+            'setuma': r'\setuma{}', 'petucha': r'\petucha{}',
+            'meta_gloss': r'\\textit{\1}',
+            }
 
     for passage_text in passages:
         passage = parse_passage(passage_text)
@@ -169,7 +219,7 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
 
         try:
             api = load_data(passage)
-            text, words = get_passage_and_words(passage, api)
+            text, words = get_passage_and_words(passage, api, text_templates)
         except:
             raise ValueError('Could not find reference "{}"'.format(passage_text))
 
@@ -200,8 +250,12 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
 
     tex.close()
 
-    if pdf is None:
-        return (tex.name, None)
+    return tex.name
+
+def generate_pdf(passages, include_voca, combine_voca, clearpage_before_voca,
+        large_text, larger_text, tex, pdf, templates, quiet=False):
+    tex = generate_tex(passages, include_voca, combine_voca,
+            clearpage_before_voca, large_text, larger_text, tex, templates)
 
     path, filename = os.path.split(pdf)
     jobname, _ = os.path.splitext(filename)
@@ -212,7 +266,7 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
         cmd.append(path)
     cmd.append('-jobname')
     cmd.append(jobname)
-    cmd.append(tex.name)
+    cmd.append(tex)
 
     if quiet:
         null = open(os.devnull, 'wb')
@@ -220,7 +274,7 @@ def generate(passages, include_voca, combine_voca, clearpage_before_voca,
     else:
         subprocess.run(cmd)
 
-    return (tex.name, pdf)
+    return tex, pdf
 
 def main():
     parser = ArgumentParser(
@@ -248,8 +302,10 @@ def main():
             help='TeX file to append to word list')
 
     p_output = parser.add_argument_group('Output options')
+    p_output.add_argument('--txt', type=FileType('w', encoding='utf-8'),
+            metavar='FILE', help='File to write plain text output to')
     p_output.add_argument('--tex', type=FileType('w', encoding='utf-8'),
-            metavar='FILE', help='File to write the TeX code to')
+            metavar='FILE', help='File to write XeLaTeX output to')
     p_output.add_argument('--pdf',
             metavar='FILE', help='The output PDF file')
 
@@ -276,11 +332,13 @@ def main():
 
     args = parser.parse_args()
 
-    if args.tex is None:
+    if args.pdf is None and args.txt is None and args.tex is None:
+        print('At least one of --txt, --tex, or --pdf must be given.')
+        sys.exit(1)
+
+    if args.tex is None and args.pdf is not None:
         tex = tempfile.mkstemp(suffix='.tex', prefix='reader')
         args.tex = open(tex[1], 'w', encoding='utf-8')
-    if args.pdf is None:
-        args.pdf = tempfile.mkstemp(suffix='.pdf', prefix='reader')[1]
 
     print('Loading data...')
     load_verse_nodes()
@@ -291,21 +349,33 @@ def main():
 
     print('Generating reader...')
     try:
+        if args.txt is not None:
+            file = generate_txt(args.passages, args.include_voca, args.combine_voca, args.txt)
+            print('Plain text written to', file)
+
         templates = {}
-        templates['pre'] = args.pre_tex.read()
-        templates['post'] = args.post_tex.read()
-        templates['pretext'] = args.pre_text_tex.read()
-        templates['posttext'] = args.post_text_tex.read()
-        templates['prevoca'] = args.pre_voca_tex.read()
-        templates['postvoca'] = args.post_voca_tex.read()
-        generate(args.passages,
-                args.include_voca, args.combine_voca, args.clearpage_before_voca,
-                args.large_text, False, args.tex, args.pdf, templates)
+        if args.tex is not None:
+            templates['pre'] = args.pre_tex.read()
+            templates['post'] = args.post_tex.read()
+            templates['pretext'] = args.pre_text_tex.read()
+            templates['posttext'] = args.post_text_tex.read()
+            templates['prevoca'] = args.pre_voca_tex.read()
+            templates['postvoca'] = args.post_voca_tex.read()
+
+        if args.pdf is not None:
+            tex, pdf = generate_pdf(args.passages, args.include_voca,
+                    args.combine_voca, args.clearpage_before_voca,
+                    args.large_text, False, args.tex, args.pdf, templates)
+            print('XeLaTeX written to', tex)
+            print('PDF written to', pdf)
+        elif args.tex is not None:
+            tex = generate_tex(args.passages, args.include_voca,
+                    args.combine_voca, args.clearpage_before_voca,
+                    args.large_text, False, args.tex, templates)
+            print('XeLaTeX written to', tex)
     except Exception as e:
         print(e)
         sys.exit(1)
-
-    print('Output written to', args.pdf)
 
 if __name__ == '__main__':
     main()
