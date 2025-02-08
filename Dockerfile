@@ -1,4 +1,4 @@
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 
 RUN mkdir -p /usr/src/app
 COPY *.md *.py *.tex *.html /usr/src/app/
@@ -7,12 +7,15 @@ COPY texlive.profile /tmp/texlive.profile
 ENV PATH="/usr/local/texlive/2020/bin/x86_64-linux:${PATH}"
 WORKDIR /usr/src/app
 
-RUN export INSTALL_PACKAGES="build-essential curl fontconfig perl python3-dev python3-setuptools subversion" &&\
-	export PACKAGES="libffi-dev libfontconfig1 python3 tar" &&\
+RUN export INSTALL_PACKAGES="build-essential curl fontconfig git perl python3-dev" &&\
+	export PACKAGES="libffi-dev libfontconfig1 python3 python3-setuptools tar" &&\
 	apt-get update -qq &&\
 	apt-get upgrade -qq &&\
 	apt-get install -qq $INSTALL_PACKAGES $PACKAGES &&\
-	svn export https://github.com/ETCBC/bhsa/trunk/tf/c /bhsa/c &&\
+	git clone -n --depth=1 --filter=tree:0 https://github.com/ETCBC/bhsa.git /bhsa &&\
+	cd /bhsa &&\
+	git sparse-checkout set --no-cone tf/c &&\
+	git checkout &&\
 	cd /tmp &&\
 	curl -L http://mirrors.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz | tar xz &&\
 	cd install-tl-* &&\
@@ -40,9 +43,9 @@ RUN export INSTALL_PACKAGES="build-essential curl fontconfig perl python3-dev py
 	curl -H 'User-Agent: stop checking' -L http://www.sbl-site.org/Fonts/SBL_Hbrw.ttf > /usr/local/share/fonts/SBL_Hbrw.ttf &&\
 	fc-cache &&\
 	cd /usr/src/app &&\
-	python3 setup.py install &&\
+	SETUPTOOLS_USE_DISTUTILS=stdlib python3 setup.py install &&\
 	mkdir data &&\
-	./collectcontexts.py --bhsa /bhsa --module c &&\
+	./collectcontexts.py --bhsa /bhsa/tf --module c &&\
 	apt-get remove -qq $INSTALL_PACKAGES &&\
 	apt-get -qq autoremove &&\
 	rm -rf /var/lib/apt/lists/*
