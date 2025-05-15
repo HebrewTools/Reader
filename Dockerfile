@@ -7,7 +7,7 @@ COPY texlive.profile /tmp/texlive.profile
 ENV PATH="/usr/local/texlive/2025/bin/x86_64-linux:${PATH}"
 WORKDIR /usr/src/app
 
-RUN export INSTALL_PACKAGES="build-essential curl fontconfig git perl python3-dev" &&\
+RUN export INSTALL_PACKAGES="build-essential curl fontconfig git perl perl-modules python3-dev" &&\
 	export PACKAGES="libffi-dev libfontconfig1 python3 python3-setuptools tar" &&\
 	apt-get update -qq &&\
 	apt-get upgrade -qq &&\
