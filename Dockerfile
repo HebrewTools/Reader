@@ -4,7 +4,7 @@ RUN mkdir -p /usr/src/app
 COPY *.md *.py *.tex *.html /usr/src/app/
 COPY texlive.profile /tmp/texlive.profile
 
-ENV PATH="/usr/local/texlive/2020/bin/x86_64-linux:${PATH}"
+ENV PATH="/usr/local/texlive/2025/bin/x86_64-linux:${PATH}"
 WORKDIR /usr/src/app
 
 RUN export INSTALL_PACKAGES="build-essential curl fontconfig git perl python3-dev" &&\

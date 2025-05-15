@@ -57,6 +57,10 @@ to install it; simply go to [reader.hebrewtools.org][live].
 To run the web server locally, run `./runserver.sh`. It is distributed as a
 Docker app, so besides Docker you will not need to have anything installed.
 
+It may be that the LaTeX installation in the Docker image fails due to
+contemporaneous updates to the TeX Live registry. In that case, run
+`./runserver.sh` again later.
+
 ## Author &amp; License
 
 Copyright &copy; 2018&ndash;present Camil Staps.
