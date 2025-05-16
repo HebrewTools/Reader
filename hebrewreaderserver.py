@@ -62,7 +62,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if passages is None or len(passages) == 0:
             self.send_quick_response(HTTPStatus.BAD_REQUEST, 'No passages given')
             return
-        passages = [p.strip() for ps in passages for p in ps.split('\n')]
+        passages = [p.strip() for ps in passages for p in ps.split('\n') if len(p.strip()) > 0]
 
         fmt = fmt[-1]
 
