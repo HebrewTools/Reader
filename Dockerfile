@@ -40,7 +40,7 @@ RUN export INSTALL_PACKAGES="build-essential curl fontconfig git perl perl-modul
 		xetex \
 		zref &&\
 	mktexfmt xelatex.fmt &&\
-	curl -H 'User-Agent: stop checking' -L http://www.sbl-site.org/Fonts/SBL_Hbrw.ttf > /usr/local/share/fonts/SBL_Hbrw.ttf &&\
+	curl -L https://www.sbl-site.org/wp-content/themes/basket/fonts/bib-fonts/SBL_Hbrw.ttf > /usr/local/share/fonts/SBL_Hbrw.ttf &&\
 	fc-cache &&\
 	cd /usr/src/app &&\
 	SETUPTOOLS_USE_DISTUTILS=stdlib python3 setup.py install &&\
