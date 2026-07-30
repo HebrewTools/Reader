@@ -1,0 +1,6 @@
+FROM camilstaps/hebrew-reader:base
+
+COPY common.py minitf.py hebrewreader.py hebrewreaderserver.py *.tex *.html /usr/src/app/
+
+ENTRYPOINT ["./hebrewreaderserver.py"]
+CMD []

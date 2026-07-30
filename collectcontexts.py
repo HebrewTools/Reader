@@ -5,22 +5,22 @@ import pickle
 
 from tf.fabric import Fabric
 
-from hebrewreader import DATADIR, FEATURES, load_data
+from common import DATADIR, FEATURES
 from minitf import gather_context
 
-VERSE_NODES = dict()
+verse_nodes = {}
 
 def gather_chapter(api, book, chap):
-    global VERSE_NODES
+    global verse_nodes
     nodes = set()
     node = api.T.nodeFromSection((book, chap, 1))
     if node is None:
         return None
     verse = 1
-    VERSE_NODES[book][chap] = dict()
+    verse_nodes[book][chap] = dict()
     while api.T.sectionFromNode(node)[0:2] == (book,chap):
         verse = api.T.sectionFromNode(node)[2]
-        VERSE_NODES[book][chap][verse] = node
+        verse_nodes[book][chap][verse] = node
         nodes.add(node)
         words = api.L.d(node, 'word')
         nodes.update(set(words))
@@ -33,10 +33,10 @@ def gather_chapter(api, book, chap):
     return nodes
 
 def gather_book(api, book):
-    global VERSE_NODES
+    global verse_nodes
     result = dict()
     chap = 1
-    VERSE_NODES[book] = dict()
+    verse_nodes[book] = dict()
     while True:
         nodes = gather_chapter(api, book, chap)
         if nodes is None:
@@ -56,6 +56,7 @@ def dump_book(api, book):
             pickle.dump(context, f)
 
 def gather(locations, modules):
+    global verse_nodes
     TF = Fabric(locations=locations, modules=modules, silent=True)
     api = TF.load(FEATURES, silent=True)
 
@@ -65,7 +66,7 @@ def gather(locations, modules):
         dump_book(api, book)
 
     with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'wb') as f:
-        pickle.dump(VERSE_NODES, f)
+        pickle.dump(verse_nodes, f)
 
 def main():
     parser = ArgumentParser(description='Gather the TF contexts to reduce memory usage in the HTTP server')

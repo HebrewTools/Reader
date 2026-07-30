@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser, FileType, RawTextHelpFormatter
 import os
-import pickle
 import re
 from shutil import copyfile
 import subprocess
@@ -11,9 +10,8 @@ import textwrap
 
 from tf.fabric import Fabric
 
+from common import DATADIR, FEATURES, load_verse_nodes, verses_in_passage, load_data
 import minitf
-
-DATADIR = 'data'
 
 PASSAGE_RGX = (
     r'^(?P<book>(?:\d )?[a-zA-Z ]+) '
@@ -21,17 +19,9 @@ PASSAGE_RGX = (
     r'(?:-(?P<endref>(?P<endchap>\d+)(?::(?P<endverse>\d+))?|(?:book)?end))?$'
 )
 
-FEATURES = 'g_word_utf8 gloss lex_utf8 otype trailer_utf8 voc_lex_utf8'
-
-VERSE_NODES = dict()
-
-def load_verse_nodes():
-    global VERSE_NODES
-
-    with open(os.path.join(DATADIR, 'verse_nodes.pkl'), 'rb') as f:
-        VERSE_NODES = pickle.load(f)
-
 def parse_passage(passage):
+    verse_nodes = load_verse_nodes()
+
     match = re.match(PASSAGE_RGX, passage)
     if match is None:
         match = {'book': passage, 'startchap': 1, 'startverse': 1,
@@ -56,33 +46,22 @@ def parse_passage(passage):
                 match['endchap'] = match['startchap']
                 match['endverse'] = match['startverse']
         elif match['endverse'] is None:
-            match['endverse'] = len(VERSE_NODES[match['book']][match['endchap']])
+            match['endverse'] = len(verse_nodes[match['book']][match['endchap']])
 
         if match['startverse'] is None:
             match['startverse'] = 1
 
         if match['endref'] == 'end':
             match['endchap'] = match['startchap']
-            match['endverse'] = len(VERSE_NODES[match['book']][match['endchap']])
+            match['endverse'] = len(verse_nodes[match['book']][match['endchap']])
         elif match['endref'] == 'bookend':
-            match['endchap'] = len(VERSE_NODES[match['book']])
-            match['endverse'] = len(VERSE_NODES[match['book']][match['endchap']])
+            match['endchap'] = len(verse_nodes[match['book']])
+            match['endverse'] = len(verse_nodes[match['book']][match['endchap']])
     except:
         raise ValueError('Could not find reference "{}"'.format(passage))
 
     match.pop('endref')
     return match
-
-def verses_in_passage(passage):
-    for chap in range(passage['startchap'], passage['endchap']+1):
-        start = passage['startverse'] if chap == passage['startchap'] else 1
-        if chap == passage['endchap']:
-            end = passage['endverse']
-        else:
-            end = len(VERSE_NODES[passage['book']][chap])
-
-        for verse in range(start, end+1):
-            yield (passage['book'], chap, verse)
 
 def fix_trailer(trailer, templates):
     return trailer\
@@ -96,6 +75,8 @@ def fix_gloss(gloss, templates):
     return re.sub(r'<(.*)>', templates['meta_gloss'], gloss)
 
 def get_passage_and_words(passage, api, templates, separate_chapters=True, verse_nos=True):
+    verse_nodes = load_verse_nodes()
+
     text = []
     words = set()
 
@@ -105,7 +86,7 @@ def get_passage_and_words(passage, api, templates, separate_chapters=True, verse
             last_chapter = verse[1]
             if separate_chapters:
                 text.append('\n')
-        node = VERSE_NODES[verse[0]][verse[1]][verse[2]]
+        node = verse_nodes[verse[0]][verse[1]][verse[2]]
         wordnodes = api.L.d(node, otype='word')
         thistext = ''
         if verse_nos:
@@ -123,29 +104,6 @@ def get_passage_and_words(passage, api, templates, separate_chapters=True, verse
         text.append(thistext)
 
     return text, sorted(words)
-
-def load_data(passage):
-    seen = set()
-    context = dict()
-    for book, chap, _ in verses_in_passage(passage):
-        if (book,chap) in seen:
-            continue
-        seen.add((book, chap))
-        fname = book + '_' + str(chap) + '.pkl'
-        with open(os.path.join(DATADIR, fname), 'rb') as f:
-            add_context = pickle.load(f)
-            for key, val in add_context.items():
-                if key not in context:
-                    context[key] = val
-                elif key == 'nodes':
-                    context[key] += ',' + val
-                elif key == 'locality' or key == 'features':
-                    for subkey, subval in val.items():
-                        context[key][subkey].update(subval)
-                else:
-                    context[key].update(val)
-    api = minitf.MiniApi(**context)
-    return api
 
 def generate_txt(passages, include_voca, combine_voca, txt):
     voca = set()
@@ -187,7 +145,8 @@ def generate_txt(passages, include_voca, combine_voca, txt):
     if include_voca and combine_voca:
         txt.write('\n\n' + '\n'.join('%s: %s' % (lex,gloss) for _, lex, gloss in sorted(voca)))
 
-    txt.close()
+    if txt != sys.stdout:
+        txt.close()
 
     return txt.name
 
@@ -351,7 +310,10 @@ def main():
     try:
         if args.txt is not None:
             file = generate_txt(args.passages, args.include_voca, args.combine_voca, args.txt)
-            print('Plain text written to', file)
+            if file == '<stdout>':
+                print()
+            else:
+                print('Plain text written to', file)
 
         templates = {}
         if args.tex is not None:

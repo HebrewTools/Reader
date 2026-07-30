@@ -1,25 +1,39 @@
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
+ENV PATH="/usr/local/texlive/2026/bin/x86_64-linux:${PATH}"
 RUN mkdir -p /usr/src/app
-COPY *.md *.py *.tex *.html /usr/src/app/
-COPY texlive.profile /tmp/texlive.profile
-
-ENV PATH="/usr/local/texlive/2025/bin/x86_64-linux:${PATH}"
 WORKDIR /usr/src/app
 
-RUN export INSTALL_PACKAGES="build-essential curl fontconfig git perl perl-modules python3-dev" &&\
-	export PACKAGES="libffi-dev libfontconfig1 python3 python3-setuptools tar" &&\
+RUN export INSTALL_PACKAGES="build-essential curl fontconfig git perl perl-modules" &&\
+	export PACKAGES="libffi-dev libfontconfig1 python3 python3-pip tar" &&\
 	apt-get update -qq &&\
 	apt-get upgrade -qq &&\
 	apt-get install -qq $INSTALL_PACKAGES $PACKAGES &&\
+	rm -rf /var/lib/apt/lists/* &&\
 	git clone -n --depth=1 --filter=tree:0 https://github.com/ETCBC/bhsa.git /bhsa &&\
 	cd /bhsa &&\
 	git sparse-checkout set --no-cone tf/c &&\
-	git checkout &&\
-	cd /tmp &&\
+	git checkout
+
+RUN curl -L https://www.sbl-site.org/wp-content/themes/basket/fonts/bib-fonts/SBL_Hbrw.ttf > /usr/local/share/fonts/SBL_Hbrw.ttf &&\
+	fc-cache
+
+COPY requirements.txt /usr/src/app
+RUN cd /usr/src/app &&\
+	pip3 install --break-system-packages -r requirements.txt
+
+COPY README.md collectcontexts.py common.py minitf.py /usr/src/app/
+RUN cd /usr/src/app &&\
+	mkdir data &&\
+	./collectcontexts.py --bhsa /bhsa/tf --module c
+
+COPY texlive.profile /tmp/texlive.profile
+RUN cd /tmp &&\
 	curl -L http://mirrors.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz | tar xz &&\
+	#curl -L https://nl.mirrors.cicku.me/ctan/systems/texlive/tlnet/install-tl-unx.tar.gz | tar xz &&\
 	cd install-tl-* &&\
 	./install-tl -repository http://mirrors.ctan.org/systems/texlive/tlnet -profile /tmp/texlive.profile &&\
+	#./install-tl -repository https://nl.mirrors.cicku.me/ctan/systems/texlive/tlnet -profile /tmp/texlive.profile &&\
 	cd .. &&\
 	rm -rf install-tl-* &&\
 	tlmgr install \
@@ -39,16 +53,4 @@ RUN export INSTALL_PACKAGES="build-essential curl fontconfig git perl perl-modul
 		tools \
 		xetex \
 		zref &&\
-	mktexfmt xelatex.fmt &&\
-	curl -L https://www.sbl-site.org/wp-content/themes/basket/fonts/bib-fonts/SBL_Hbrw.ttf > /usr/local/share/fonts/SBL_Hbrw.ttf &&\
-	fc-cache &&\
-	cd /usr/src/app &&\
-	SETUPTOOLS_USE_DISTUTILS=stdlib python3 setup.py install &&\
-	mkdir data &&\
-	./collectcontexts.py --bhsa /bhsa/tf --module c &&\
-	apt-get remove -qq $INSTALL_PACKAGES &&\
-	apt-get -qq autoremove &&\
-	rm -rf /var/lib/apt/lists/*
-
-ENTRYPOINT ["./hebrewreaderserver.py"]
-CMD []
+	mktexfmt xelatex.fmt

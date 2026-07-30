@@ -61,6 +61,40 @@ It may be that the LaTeX installation in the Docker image fails due to
 contemporaneous updates to the TeX Live registry. In that case, run
 `./runserver.sh` again later.
 
+## Building &amp; deploying (Docker)
+
+Normally you can just build the CLI image and use that, for instance:
+
+```
+docker build -t camilstaps/hebrew-reader:cli -f Dockerfile.cli .
+docker run --rm -it camilstaps/hebrew-reader:cli --txt - 'Genesis 1'
+```
+
+Note that LaTeX/PDF output are a bit more complicated as the Docker container
+normally doesn't have access to your file system. The plain text output works
+as it can just output to the terminal.
+
+For the server, use:
+
+```
+docker build -t camilstaps/hebrew-reader:server -f Dockerfile.server .
+docker run --network host --rm -it camilstaps/hebrew-reader:server
+```
+
+You can then access it at http://localhost:19419/.
+
+During development you need to rerun both the `build` and the `run` command
+after modifying files.
+
+If you modify the core of the app (e.g. collectcontexts.py), rebuild the base
+image first:
+
+```
+docker build -t camilstaps/hebrew-reader:base .
+```
+
+Deploying can be done with `runserver.sh`.
+
 ## Author &amp; License
 
 Copyright &copy; 2018&ndash;present Camil Staps.
